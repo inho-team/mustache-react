@@ -6,7 +6,7 @@ export default function OrderList({ orders, total }: OrderListResponse) {
   const visible = orders.filter((order) => order.customer.toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <section>
+    <main className="page">
       <h1>주문 목록</h1>
       <input
         aria-label="고객 검색"
@@ -39,6 +39,6 @@ export default function OrderList({ orders, total }: OrderListResponse) {
           ))}
         </tbody>
       </table>
-    </section>
+    </main>
   );
 }

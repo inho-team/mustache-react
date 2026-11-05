@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  {{{mr.head}}}
+</head>
+<body>
+<main class="page">
+  <h1>{{title}}</h1>
+  <p>이 화면은 Mustache 템플릿입니다. 차트와 상태 배지만 React 컴포넌트입니다.</p>
+
+  {{! islands/OrderChart.tsx 에 model의 orders, currency 를 props로 전달 }}
+  {{#react}}OrderChart orders currency{{/react}}
+
+  <table>
+    <thead><tr><th>번호</th><th>고객</th><th>상태</th></tr></thead>
+    <tbody>
+    {{#orders}}
+      <tr>
+        <td>{{id}}</td>
+        <td>{{customer}}</td>
+        {{! 루프 안에서는 현재 주문의 값을 먼저 찾습니다 }}
+        <td>{{#react}}StatusBadge status orderId=id{{/react}}</td>
+      </tr>
+    {{/orders}}
+    </tbody>
+  </table>
+</main>
+{{{mr.scripts}}}
+</body>
+</html>

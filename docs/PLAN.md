@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: v0.3 · M1 완료 · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.4 · M2 완료 · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -109,30 +109,52 @@ export default function OrderList({ content, totalPages }: OrderListResponse) {
 
 ### 5-2. 기존 Mustache 화면에 일부만 React 삽입 (보조 기능)
 
+컨트롤러는 평소처럼 Model만 채운다.
+
 ```java
-model.addAttribute("orders", orders);
-return "orders/detail";
+@GetMapping("/dashboard")
+public String dashboard(Model model) {
+    model.addAttribute("orders", orderService.findAll());
+    model.addAttribute("currency", "원");
+    return "dashboard";
+}
 ```
 ```mustache
-<h1>{{title}}</h1>
-{{#react}}OrderChart orders{{/react}}
-{{#react}}UserBadge user=currentUser{{/react}}
+<head> ... {{{mr.head}}} </head>
+<body>
+  {{#react}}OrderChart orders currency{{/react}}
 
-{{{mr.scripts}}}
+  {{#orders}}
+    <td>{{customer}}</td>
+    <td>{{#react}}StatusBadge status orderId=id{{/react}}</td>
+  {{/orders}}
+
+  {{{mr.scripts}}}
+</body>
 ```
 
-문법은 다음 세 가지가 전부다.
+**문법**
 
 | 문법 | 의미 |
 |---|---|
-| `{{#react}}이름 a b{{/react}}` | Model의 `a`, `b`를 같은 이름의 props로 전달 |
-| `{{#react}}이름 x=a.b{{/react}}` | Model 경로 `a.b`를 `x`라는 이름의 prop으로 전달 |
-| `{{{mr.head}}}`, `{{{mr.scripts}}}` | 필요한 CSS와 JS 태그 출력 (`<head>` 안, `</body>` 직전) |
+| `{{#react}}이름 a b{{/react}}` | `src/main/frontend/islands/이름.tsx`에 Model의 `a`, `b`를 같은 이름의 props로 전달 |
+| `{{#react}}이름 x=a.b{{/react}}` | 경로 `a.b`의 값을 `x`라는 이름의 prop으로 전달 |
+| `{{#react}}이름 item=this{{/react}}` | 현재 루프 항목 전체를 `item`으로 전달 |
+| `{{{mr.head}}}` | `<head>` 안. 엔트리의 CSS와 preload |
+| `{{{mr.scripts}}}` | **마지막 island 뒤** (`</body>` 직전). 페이지에서 쓴 island의 CSS와 preload, 엔트리 script |
 
-- 경로는 Mustache와 같은 규칙으로 컨텍스트 스택을 따라 찾는다. 루프 안에서는 현재 항목부터 찾고, `this`는 현재 항목 자체를 뜻한다.
-- 값은 Spring에 등록된 ObjectMapper(Jackson)로 직렬화한다.
-- SSR 여부, 마운트 시점 같은 옵션은 템플릿에 쓰지 않고 `application.yml`이나 Java 쪽에서 설정한다.
-- 모델 이름(`react`, `mr`)은 사용자 모델과 겹치지 않도록 설정으로 바꿀 수 있다.
+- 이름은 `islands/` 아래 경로다. `charts/OrderChart`는 `islands/charts/OrderChart.tsx`를 가리킨다.
+- 토큰은 공백이나 줄바꿈으로 구분하므로 여러 줄로 써도 된다.
+- 값은 Mustache와 같은 규칙으로 찾는다. 첫 단어는 현재 루프 항목부터 바깥 섹션, Model 순서로 찾고, 나머지 단어는 찾은 값에서 읽는다. 읽는 순서는 `Map` 키, record 방식 접근자 `name()`, getter `getName()`/`isName()`, public 필드다.
+- 값이 `null`이면 `null` prop으로 전달한다. 이름 자체가 없으면 템플릿 오류로 렌더링을 중단한다. 오류 메시지에는 어떤 섹션의 어떤 이름인지와 `model.addAttribute(...)` 안내가 들어간다.
+- props JSON은 `@ReactPage`와 같은 HttpMessageConverter로 만든다. 따라서 Jackson 설정이 똑같이 적용된다.
+- island id(`mr-0`, `mr-1`, ...)는 요청마다 0부터 다시 매긴다. `mr.scripts`가 페이지에서 쓴 island를 알 수 있는 것은 요청 단위로 기록하기 때문이다.
+- `react`와 `mr`는 `@ControllerAdvice`가 **모든 Spring MVC Model**에 넣는다. 컨트롤러 코드는 필요 없다.
+  - 같은 이름의 Model 값이 이미 있으면 덮어쓰지 않는다.
+  - 이름은 `mustache-react.template.react-name`, `mustache-react.template.helpers-name`으로 바꿀 수 있다.
+  - `mustache-react.template.model-attributes=false`로 끌 수 있다.
+- island를 감싸는 요소는 `<div>`다. `<p>` 같은 인라인 문맥 안에는 넣지 않는다.
+- SSR 여부, 마운트 시점 같은 옵션은 템플릿에 쓰지 않고 `application.yml`이나 Java 쪽에서 설정한다(M5).
 
 ### 5-3. 폼과 검증
 
@@ -183,14 +205,15 @@ Controller ─ @ReactPage 반환값 / Model ─▶ MustacheReact 렌더러
 ```
 
 - JSON 안의 `</script>`, `<!--`, U+2028/2029는 이스케이프해서 XSS를 막는다.
-- 실패하면 개발 모드에서는 화면에 에러 박스를 띄우고, 운영 모드에서는 로그를 남기고 빈 island를 출력한다(`strict` 옵션을 켜면 예외).
+- 서버 쪽 오류(manifest 없음, 잘못된 island 문법, 없는 Model 이름)는 Mustache 템플릿 오류처럼 렌더링을 중단하고 원인을 메시지로 알린다. 개발 모드에서 화면에 오류를 띄우는 기능은 M3에서 다룬다.
+- 브라우저 쪽에서는 island 하나가 실패해도 나머지 island는 마운트된다.
 
 ### 6-1. 프론트엔드 디렉터리 관례
 
 ```
 src/main/frontend/
 ├── pages/            # @ReactPage("orders/OrderList") → pages/orders/OrderList.tsx (default export)
-├── islands/          # (M2) Mustache 화면에 넣는 부분 컴포넌트
+├── islands/          # {{#react}}OrderChart orders{{/react}} → islands/OrderChart.tsx (default export)
 └── app.tsx           # (선택) 모든 페이지와 island를 감싸는 컴포넌트: 테마, QueryClient 등
 ```
 
@@ -275,7 +298,7 @@ mustache-react/
 |---|---|---|
 | ✅ **M0. 뼈대** | Gradle 멀티모듈, pnpm workspace, Boot 버전 매트릭스 CI, 라이선스, 기여 가이드, 예제 앱 | 세 가지 Boot 조합 모두에서 CI 통과, 예제 기동 |
 | ✅ **M1. `@ReactPage` CSR MVP** | manifest 리졸버, 레이아웃, `@ReactPage` 반환값 처리, content negotiation, client mount | 예제의 `/orders`가 브라우저에서는 React, curl에서는 JSON으로 응답 |
-| **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
+| ✅ **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
 | **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
 | **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
 | **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |

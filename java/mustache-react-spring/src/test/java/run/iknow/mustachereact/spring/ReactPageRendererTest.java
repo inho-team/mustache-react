@@ -15,7 +15,8 @@ class ReactPageRendererTest {
     private static final String MANIFEST = "classpath:/renderer/manifest.json";
 
     private ReactPageRenderer renderer(String manifest, String layout) {
-        return new ReactPageRenderer(new DefaultResourceLoader(), Mustache.compiler(), manifest, layout,
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        return new ReactPageRenderer(loader, Mustache.compiler(), new ViteManifestSource(loader, manifest), layout,
                 "/mustache-react/", true);
     }
 

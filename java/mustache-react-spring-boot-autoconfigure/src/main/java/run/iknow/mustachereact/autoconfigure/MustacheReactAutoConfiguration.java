@@ -9,11 +9,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import com.samskivert.mustache.Mustache;
 
+import run.iknow.mustachereact.spring.MustacheReactHelpers;
+import run.iknow.mustachereact.spring.MustacheReactModelAdvice;
+import run.iknow.mustachereact.spring.PropsSerializer;
+import run.iknow.mustachereact.spring.ReactIslandLambda;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
+import run.iknow.mustachereact.spring.ViteManifestSource;
 
 /**
  * Auto-configuration for mustache-react.
@@ -43,11 +49,49 @@ public class MustacheReactAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
+    public ViteManifestSource mustacheReactManifest(ResourceLoader resourceLoader, MustacheReactProperties properties) {
+        return new ViteManifestSource(resourceLoader, properties.getManifestLocation());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public ReactPageRenderer reactPageRenderer(ResourceLoader resourceLoader, MustacheReactProperties properties,
-            ObjectProvider<Mustache.Compiler> compiler) {
-        return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler),
-                properties.getManifestLocation(), properties.getLayout(), properties.getPublicPath(),
-                properties.isContentNegotiation());
+            ObjectProvider<Mustache.Compiler> compiler, ViteManifestSource manifest) {
+        return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler), manifest,
+                properties.getLayout(), properties.getPublicPath(), properties.isContentNegotiation());
+    }
+
+    /**
+     * Serializes island props with Spring MVC's message converters, looked up on first use.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public PropsSerializer mustacheReactPropsSerializer(ObjectProvider<RequestMappingHandlerAdapter> adapter) {
+        return new PropsSerializer(() -> adapter.getObject().getMessageConverters());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ReactIslandLambda reactIslandLambda(PropsSerializer propsSerializer) {
+        return new ReactIslandLambda(propsSerializer);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MustacheReactHelpers mustacheReactHelpers(ViteManifestSource manifest, MustacheReactProperties properties) {
+        return new MustacheReactHelpers(manifest, properties.getPublicPath());
+    }
+
+    /**
+     * Makes {@code {{#react}}}, {@code {{{mr.head}}}} and {@code {{{mr.scripts}}}} available in every Mustache view.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "template.model-attributes", matchIfMissing = true)
+    public MustacheReactModelAdvice mustacheReactModelAdvice(MustacheReactProperties properties,
+            ReactIslandLambda react, MustacheReactHelpers helpers) {
+        return new MustacheReactModelAdvice(properties.getTemplate().getReactName(), react,
+                properties.getTemplate().getHelpersName(), helpers);
     }
 
     /**

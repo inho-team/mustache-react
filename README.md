@@ -26,7 +26,20 @@ export default function OrderList({ orders, total }: OrderListResponse) {
 
 같은 `/orders` URL을 브라우저로 열면 React 화면이, curl이나 `fetch`로 부르면 기존 JSON이 응답됩니다.
 
-> **상태:** 개발 초기입니다. M1(`@ReactPage` CSR)까지 동작하며, 아직 배포된 버전은 없습니다.
+기존 Mustache 화면에는 필요한 부분만 React로 넣을 수 있습니다. 컨트롤러는 평소처럼 Model만 채우면 됩니다.
+
+```mustache
+{{#react}}OrderChart orders{{/react}}        {{! islands/OrderChart.tsx 에 model의 orders 전달 }}
+
+{{#orders}}
+  <td>{{customer}}</td>
+  <td>{{#react}}StatusBadge status orderId=id{{/react}}</td>
+{{/orders}}
+
+{{{mr.scripts}}}
+```
+
+> **상태:** 개발 초기입니다. M2(`@ReactPage` 페이지와 Mustache island, CSR)까지 동작하며, 아직 배포된 버전은 없습니다.
 > 설계와 로드맵은 [docs/PLAN.md](docs/PLAN.md)에 있습니다.
 
 ## 지원 범위 (목표)
@@ -77,7 +90,8 @@ pnpm install
 ./gradlew :examples:basic:run
 ```
 
-<http://localhost:8080/orders>를 브라우저로 열면 React 화면이 나옵니다. 같은 URL을 curl로 호출하면 JSON이 나옵니다.
+- <http://localhost:8080/orders>: `@ReactPage` 페이지. 같은 URL을 curl로 호출하면 JSON이 나옵니다.
+- <http://localhost:8080/dashboard>: Mustache 화면에 React island(recharts 차트, 상태 배지)를 넣은 예
 
 ```bash
 curl http://localhost:8080/orders

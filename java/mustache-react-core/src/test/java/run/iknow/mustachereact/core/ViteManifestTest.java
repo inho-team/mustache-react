@@ -54,10 +54,26 @@ class ViteManifestTest {
     }
 
     @Test
+    void collectsSeveralComponentsAndSplitsHeadFromBody() {
+        ViteManifest manifest = ViteManifest.parse(MANIFEST);
+        PageAssets head = manifest.entryAssets();
+        PageAssets all = manifest.assetsForComponents(java.util.Arrays.asList("pages/orders/OrderList", "pages/Missing"));
+
+        PageAssets body = all.without(head);
+
+        // The entry imports the vendor chunk, so its CSS is already in <head>.
+        assertThat(head.getStyles()).containsExactly("assets/mustache-react-4.css", "assets/vendor-1.css");
+        assertThat(head.getPreloads()).containsExactly("assets/vendor-1.js");
+        assertThat(body.getScripts()).containsExactly("assets/mustache-react-4.js");
+        assertThat(body.getStyles()).containsExactly("assets/OrderList-3.css");
+        assertThat(body.getPreloads()).containsExactly("assets/OrderList-3.js", "assets/shared-2.js");
+    }
+
+    @Test
     void failsClearlyWithoutTheEntry() {
         ViteManifest manifest = ViteManifest.parse("{\"main.tsx\": {\"file\": \"assets/main.js\", \"isEntry\": true}}");
 
-        assertThatThrownBy(() -> manifest.assetsFor(null))
+        assertThatThrownBy(manifest::entryAssets)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("@mustache-react/vite-plugin");
     }

@@ -1,5 +1,6 @@
 package run.iknow.mustachereact.core;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,6 +32,23 @@ public final class PageAssets {
     /** @return JS chunks to fetch early with {@code <link rel="modulepreload">} */
     public List<String> getPreloads() {
         return preloads;
+    }
+
+    /**
+     * Returns the styles and preloads of these assets that are not in {@code other}, keeping the scripts.
+     *
+     * <p>Used on Mustache pages: {@code mr.head} is written before the islands are known and holds the entry's
+     * assets; {@code mr.scripts} adds what the islands need on top of that.
+     *
+     * @param other assets already referenced by the page
+     * @return the remaining assets
+     */
+    public PageAssets without(PageAssets other) {
+        List<String> remainingStyles = new ArrayList<>(styles);
+        remainingStyles.removeAll(other.styles);
+        List<String> remainingPreloads = new ArrayList<>(preloads);
+        remainingPreloads.removeAll(other.preloads);
+        return new PageAssets(new ArrayList<>(scripts), remainingStyles, remainingPreloads);
     }
 
     /**

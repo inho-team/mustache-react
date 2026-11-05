@@ -32,6 +32,22 @@ try {
 
   assert.deepEqual(errors, []);
 
+  // Mustache page with React islands.
+  await page.goto(`${baseUrl}/dashboard`);
+  await page.getByRole('heading', { name: '대시보드' }).waitFor();
+  await page.locator('[data-testid="order-chart"] .recharts-bar-rectangle').first().waitFor();
+  assert.equal(await page.locator('[data-testid="order-chart"] .recharts-bar-rectangle').count(), 3);
+  const badges = page.locator('tbody .badge');
+  await badges.first().waitFor();
+  assert.equal(await badges.count(), 4);
+  assert.equal(await badges.nth(1).textContent(), '배송 중');
+  await badges.nth(1).click();
+  assert.equal(await badges.nth(1).textContent(), '배송 중 · 주문 #1002');
+  // Server-rendered Mustache content stays in place.
+  assert.equal(await page.locator('tbody tr').nth(0).locator('td').nth(1).textContent(), '김민수');
+
+  assert.deepEqual(errors, []);
+
   const api = await fetch(`${baseUrl}/orders`, { headers: { Accept: 'application/json' } });
   assert.match(api.headers.get('content-type') ?? '', /^application\/json/);
   assert.equal((await api.json()).total, 4);

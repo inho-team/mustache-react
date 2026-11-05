@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
@@ -24,13 +25,34 @@ import org.springframework.http.converter.StringHttpMessageConverter;
  */
 public class PropsSerializer {
 
-    private final List<HttpMessageConverter<?>> converters;
+    private final Supplier<List<HttpMessageConverter<?>>> converterSource;
+    private volatile List<HttpMessageConverter<?>> converters;
 
     /**
      * @param converters the message converters, usually those of the {@code RequestMappingHandlerAdapter}
      */
     public PropsSerializer(List<HttpMessageConverter<?>> converters) {
         this.converters = Collections.unmodifiableList(new ArrayList<>(converters));
+        this.converterSource = null;
+    }
+
+    /**
+     * Creates a serializer that obtains the converters on first use, for example from the
+     * {@code RequestMappingHandlerAdapter} once the application context is ready.
+     *
+     * @param converters supplies the message converters
+     */
+    public PropsSerializer(Supplier<List<HttpMessageConverter<?>>> converters) {
+        this.converterSource = converters;
+    }
+
+    private List<HttpMessageConverter<?>> converters() {
+        List<HttpMessageConverter<?>> current = converters;
+        if (current == null) {
+            current = Collections.unmodifiableList(new ArrayList<>(converterSource.get()));
+            converters = current;
+        }
+        return current;
     }
 
     /**
@@ -46,7 +68,7 @@ public class PropsSerializer {
         if (value == null) {
             return "{}";
         }
-        for (HttpMessageConverter<?> converter : converters) {
+        for (HttpMessageConverter<?> converter : converters()) {
             if (converter instanceof StringHttpMessageConverter
                     || !converter.canWrite(value.getClass(), MediaType.APPLICATION_JSON)) {
                 continue;

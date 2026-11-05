@@ -35,6 +35,9 @@ public class MustacheReactProperties {
     /** Mustache layout for {@code @ReactPage} pages. The built-in layout is used when this resource does not exist. */
     private String layout = "classpath:/templates/mustache-react/layout.mustache";
 
+    /** Names under which Mustache views see the mustache-react helpers. */
+    private final Template template = new Template();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -89,6 +92,47 @@ public class MustacheReactProperties {
 
     public void setLayout(String layout) {
         this.layout = layout;
+    }
+
+    public Template getTemplate() {
+        return template;
+    }
+
+    /** Settings under {@code mustache-react.template.*}. */
+    public static class Template {
+
+        /** Whether to add the island section and the helpers to every Spring MVC model. */
+        private boolean modelAttributes = true;
+
+        /** Model name of the island section: {@code {{#react}}OrderChart orders{{/react}}}. */
+        private String reactName = "react";
+
+        /** Model name of the helpers: {@code {{{mr.head}}}}, {@code {{{mr.scripts}}}}. */
+        private String helpersName = "mr";
+
+        public boolean isModelAttributes() {
+            return modelAttributes;
+        }
+
+        public void setModelAttributes(boolean modelAttributes) {
+            this.modelAttributes = modelAttributes;
+        }
+
+        public String getReactName() {
+            return reactName;
+        }
+
+        public void setReactName(String reactName) {
+            this.reactName = reactName;
+        }
+
+        public String getHelpersName() {
+            return helpersName;
+        }
+
+        public void setHelpersName(String helpersName) {
+            this.helpersName = helpersName;
+        }
     }
 
     /** Server-side rendering mode. */

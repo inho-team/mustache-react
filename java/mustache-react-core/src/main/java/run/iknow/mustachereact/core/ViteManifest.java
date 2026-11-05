@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -77,11 +78,33 @@ public final class ViteManifest {
      * manifest.
      *
      * @param component component path relative to the frontend directory without extension,
-     *        e.g. {@code pages/orders/OrderList}; {@code null} for the entry only
+     *        e.g. {@code pages/orders/OrderList}
      * @return the assets to reference from the HTML
      * @throws IllegalStateException if the manifest has no mustache-react entry
      */
     public PageAssets assetsFor(String component) {
+        return assetsForComponents(Collections.singletonList(component));
+    }
+
+    /**
+     * Collects the assets of the client entry alone.
+     *
+     * @return the entry's script, styles and preloads
+     * @throws IllegalStateException if the manifest has no mustache-react entry
+     */
+    public PageAssets entryAssets() {
+        return assetsForComponents(Collections.<String>emptyList());
+    }
+
+    /**
+     * Collects the assets for a page holding several components (a Mustache page with islands).
+     *
+     * @param components component paths relative to the frontend directory without extension,
+     *        e.g. {@code islands/OrderChart}; components missing from the manifest are skipped
+     * @return the assets to reference from the HTML
+     * @throws IllegalStateException if the manifest has no mustache-react entry
+     */
+    public PageAssets assetsForComponents(Collection<String> components) {
         String entryKey = findEntryKey();
         Chunk entry = chunks.get(entryKey);
 
@@ -92,12 +115,14 @@ public final class ViteManifest {
         styles.addAll(entry.css);
         collectImports(entry, styles, preloads, visited);
 
-        String componentKey = component == null ? null : findComponentKey(component);
-        if (componentKey != null && visited.add(componentKey)) {
-            Chunk chunk = chunks.get(componentKey);
-            preloads.add(chunk.file);
-            styles.addAll(chunk.css);
-            collectImports(chunk, styles, preloads, visited);
+        for (String component : components) {
+            String componentKey = findComponentKey(component);
+            if (componentKey != null && visited.add(componentKey)) {
+                Chunk chunk = chunks.get(componentKey);
+                preloads.add(chunk.file);
+                styles.addAll(chunk.css);
+                collectImports(chunk, styles, preloads, visited);
+            }
         }
         return new PageAssets(
                 new ArrayList<>(Collections.singletonList(entry.file)),

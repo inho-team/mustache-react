@@ -4,14 +4,38 @@
     "name": "OrderList",
     "src": "pages/orders/OrderList.tsx",
     "isDynamicEntry": true,
-    "imports": ["virtual:mustache-react/entry"]
+    "imports": [
+      "virtual:mustache-react/entry"
+    ]
   },
   "virtual:mustache-react/entry": {
     "file": "assets/mustache-react-test.js",
     "name": "mustache-react",
     "src": "virtual:mustache-react/entry",
     "isEntry": true,
-    "dynamicImports": ["pages/orders/OrderList.tsx"],
-    "css": ["assets/mustache-react-test.css"]
+    "dynamicImports": [
+      "pages/orders/OrderList.tsx"
+    ],
+    "css": [
+      "assets/mustache-react-test.css"
+    ]
+  },
+  "islands/OrderChart.tsx": {
+    "file": "assets/OrderChart-test.js",
+    "name": "OrderChart",
+    "src": "islands/OrderChart.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "virtual:mustache-react/entry"
+    ]
+  },
+  "islands/StatusBadge.tsx": {
+    "file": "assets/StatusBadge-test.js",
+    "name": "StatusBadge",
+    "src": "islands/StatusBadge.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "virtual:mustache-react/entry"
+    ]
   }
 }

@@ -18,7 +18,6 @@ import com.samskivert.mustache.Template;
 
 import run.iknow.mustachereact.core.IslandMarkup;
 import run.iknow.mustachereact.core.PageAssets;
-import run.iknow.mustachereact.core.ViteManifest;
 
 /**
  * Renders a full HTML page for a React page component, using a Mustache layout.
@@ -41,27 +40,26 @@ public class ReactPageRenderer {
 
     private final ResourceLoader resourceLoader;
     private final Mustache.Compiler compiler;
-    private final String manifestLocation;
+    private final ViteManifestSource manifest;
     private final String layoutLocation;
     private final String publicPath;
     private final boolean contentNegotiation;
 
-    private final AtomicReference<ViteManifest> manifest = new AtomicReference<>();
     private final AtomicReference<Template> layout = new AtomicReference<>();
 
     /**
      * @param resourceLoader loads the manifest and the layout
      * @param compiler the application's Mustache compiler, so that layouts can use its partials and settings
-     * @param manifestLocation location of the Vite manifest, e.g. {@code classpath:/static/mustache-react/.vite/manifest.json}
+     * @param manifest the Vite manifest
      * @param layoutLocation location of the application's layout; the built-in layout is used if it does not exist
      * @param publicPath URL path the built assets are served from, e.g. {@code /mustache-react/}
      * @param contentNegotiation whether requests for JSON get the data instead of the page
      */
-    public ReactPageRenderer(ResourceLoader resourceLoader, Mustache.Compiler compiler, String manifestLocation,
+    public ReactPageRenderer(ResourceLoader resourceLoader, Mustache.Compiler compiler, ViteManifestSource manifest,
             String layoutLocation, String publicPath, boolean contentNegotiation) {
         this.resourceLoader = resourceLoader;
         this.compiler = compiler;
-        this.manifestLocation = manifestLocation;
+        this.manifest = manifest;
         this.layoutLocation = layoutLocation;
         this.publicPath = publicPath;
         this.contentNegotiation = contentNegotiation;
@@ -85,7 +83,7 @@ public class ReactPageRenderer {
      */
     public String render(String page, String title, String propsJson, Locale locale) {
         String component = PAGES_DIRECTORY + IslandMarkup.requireValidName(page);
-        PageAssets assets = manifest().assetsFor(component);
+        PageAssets assets = manifest.get().assetsFor(component);
 
         Map<String, Object> mr = new HashMap<>();
         mr.put("head", assets.headTags(publicPath));
@@ -98,27 +96,6 @@ public class ReactPageRenderer {
         context.put("page", page);
         context.put("mr", mr);
         return layout().execute(context);
-    }
-
-    private ViteManifest manifest() {
-        ViteManifest current = manifest.get();
-        if (current != null) {
-            return current;
-        }
-        Resource resource = resourceLoader.getResource(manifestLocation);
-        if (!resource.exists()) {
-            // Not cached: once the frontend is built, the next request picks it up.
-            throw new IllegalStateException("mustache-react: Vite manifest not found at '" + manifestLocation
-                    + "'. Build the frontend first (for example 'pnpm build' in src/main/frontend), "
-                    + "or set 'mustache-react.manifest-location'.");
-        }
-        try {
-            ViteManifest loaded = ViteManifest.read(resource.getInputStream());
-            manifest.compareAndSet(null, loaded);
-            return manifest.get();
-        } catch (IOException ex) {
-            throw new IllegalStateException("mustache-react: could not read the Vite manifest at '" + manifestLocation + "'", ex);
-        }
     }
 
     private Template layout() {
