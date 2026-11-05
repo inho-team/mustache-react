@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  java:
+    name: Java (Boot ${{ matrix.boot }}, Java ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Library binary is always compiled for Java 8 against Boot 2.7 APIs;
+          # each row runs the tests and the example app on another Boot/JDK pair.
+          - { boot: 2.7.18, java: 8 }
+          - { boot: 3.5.16, java: 17 }
+          - { boot: 4.1.2, java: 21 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # The last entry becomes JAVA_HOME and runs Gradle; the matrix JDK runs the tests.
+          java-version: |
+            ${{ matrix.java }}
+            21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build and test
+        run: >
+          ./gradlew build
+          -PspringBootVersion=${{ matrix.boot }}
+          -PtestJavaVersion=${{ matrix.java }}
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-boot-${{ matrix.boot }}-java-${{ matrix.java }}
+          path: '**/build/reports/tests/'
+
+  js:
+    name: JS packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test

@@ -1,0 +1,6 @@
+[versions]
+# Minimum supported Spring Boot version. Library code compiles against this API.
+springBootMin = "2.7.18"
+
+[libraries]
+spring-boot-dependencies-min = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBootMin" }
