@@ -38,6 +38,14 @@ jobs:
           -PtestJavaVersion=${{ matrix.java }}
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
           -PskipFrontend
+      - name: Generated TypeScript types are up to date
+        run: |
+          changes=$(git status --porcelain -- examples/basic/src/main/frontend/generated)
+          if [ -n "$changes" ]; then
+            echo "::error::Generated types differ from the committed ones. Run ./gradlew build and commit the result."
+            echo "$changes"; git diff -- examples/basic/src/main/frontend/generated
+            exit 1
+          fi
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

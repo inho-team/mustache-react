@@ -1,5 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { Order } from '../types';
+import type { Order } from '../generated/types';
 
 interface Props {
   orders: Order[];

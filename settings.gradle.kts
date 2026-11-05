@@ -13,6 +13,7 @@ val javaModules = listOf(
     "mustache-react-spring",
     "mustache-react-spring-boot-autoconfigure",
     "mustache-react-spring-boot-starter",
+    "mustache-react-processor",
 )
 javaModules.forEach { name ->
     include(name)

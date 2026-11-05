@@ -15,8 +15,13 @@ val springBootVersion: String by extra
 val testRelease: Int by extra
 
 // Boot 2.7 apps may target Java 8; Boot 3+ needs Java 17.
+// The processor writes the DTO types where the frontend imports them; declaring the file as an output lets Gradle
+// re-create it when it is missing. The M4 Gradle plugin will set this up automatically.
+val generatedTypes = layout.projectDirectory.file("src/main/frontend/generated/types.ts")
 tasks.named<JavaCompile>("compileJava") {
     options.release.set(testRelease)
+    options.compilerArgs.add("-Amustachereact.typesFile=${generatedTypes.asFile.absolutePath}")
+    outputs.file(generatedTypes).withPropertyName("typescriptTypes")
 }
 
 application {
@@ -26,6 +31,8 @@ application {
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
     implementation(project(":mustache-react-spring-boot-starter"))
+    // Writes TypeScript types for the @ReactPage DTOs (see compileJava below).
+    annotationProcessor(project(":mustache-react-processor"))
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
