@@ -20,6 +20,10 @@
 | 4 | React 적용 범위 | **부분 island와 페이지 전체 React 모두 지원** |
 | 5 | 언어 | **TypeScript 기본** |
 | 6 | 배포 | **처음부터 공개 오픈소스** (Maven Central, npm) |
+| 7 | 라이선스 | **Apache-2.0** |
+| 8 | Maven groupId | **`run.iknow`** (artifact 예: `run.iknow:mustache-react-spring-boot-starter`) |
+| 9 | React 최소 버전 | **React 18 이상** (19 포함) |
+| 10 | 웹 스택 | **Spring MVC만 지원** (WebFlux는 후속 검토) |
 
 ## 3. 결정에 따른 기술적 제약과 대응
 
@@ -182,8 +186,9 @@ export default createSsrRenderer({ islands, wrapper });
 
 ## 7. 오픈소스 운영
 
-- **라이선스:** Apache-2.0 (Spring 생태계 관례). *확정 필요*
-- **Maven 좌표:** `io.github.inho-team:mustache-react-*` (GitHub 기반 Central namespace). *확정 필요*
+- **라이선스:** Apache-2.0
+- **Maven 좌표:** `run.iknow:mustache-react-*`. Central namespace 등록 시 `iknow.run` 도메인 DNS TXT 인증이 필요하다.
+- **Java 패키지:** `run.iknow.mustachereact.*`
 - **npm 스코프:** `@mustache-react/*`. npm org 이름이 사용 가능한지 확인해야 한다.
 - **버전 정책:** Java artifact와 npm 패키지를 **같은 버전으로 함께 릴리스**한다. 런타임에 manifest 형식 버전이 서로 맞는지 검증한다.
 - **CI/CD:** GitHub Actions에서 빌드 매트릭스를 돌리고, 태그를 push하면 Central과 npm에 배포한다(서명 키와 토큰은 Secrets로 관리).
@@ -191,8 +196,4 @@ export default createSsrRenderer({ islands, wrapper });
 
 ## 8. 남은 결정 사항
 
-1. 라이선스 (Apache-2.0을 추천)
-2. Maven groupId (`io.github.inho-team`을 추천하며, 개인 도메인이 있으면 그 도메인 사용)
-3. React 최소 버전 (18 이상을 추천하며, 19도 지원)
-4. WebFlux 지원 여부 (초기에는 MVC만 지원하고 WebFlux는 후속으로 추천)
-5. Mustache 템플릿 문법 (`{{#island}}Name props=x ssr{{/island}}` 형태로 갈지, 다른 형태로 갈지)
+1. Mustache 템플릿 문법: 후보 비교 중 (`{{#island}}Name prop=path @ssr{{/island}}` 형태를 추천)
