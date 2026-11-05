@@ -11,4 +11,8 @@ dependencies {
     compileOnly(platform(libs.spring.boot.dependencies.min))
     compileOnly("org.springframework:spring-webmvc")
     compileOnly("com.samskivert:jmustache")
+
+    testImplementation("org.springframework:spring-web")
+    testImplementation("org.springframework:spring-context")
+    testImplementation("com.samskivert:jmustache")
 }

@@ -9,6 +9,8 @@ dependencies {
 
     compileOnly(platform(libs.spring.boot.dependencies.min))
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
+    compileOnly("org.springframework:spring-webmvc")
+    compileOnly("com.samskivert:jmustache")
     annotationProcessor(platform(libs.spring.boot.dependencies.min))
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

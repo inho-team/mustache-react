@@ -37,6 +37,7 @@ jobs:
           -PspringBootVersion=${{ matrix.boot }}
           -PtestJavaVersion=${{ matrix.java }}
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
+          -PskipFrontend
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -58,3 +59,36 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+
+  e2e:
+    name: Browser e2e (Boot ${{ matrix.boot }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        boot: [2.7.18, 4.1.2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Start the example app
+        run: |
+          ./gradlew :examples:basic:run -PspringBootVersion=${{ matrix.boot }} --args=--server.port=18080 > app.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf -o /dev/null http://localhost:18080/ && exit 0; sleep 2; done
+          cat app.log; exit 1
+      - run: pnpm e2e
+        env:
+          BASE_URL: http://localhost:18080
+      - name: App log
+        if: failure()
+        run: cat app.log

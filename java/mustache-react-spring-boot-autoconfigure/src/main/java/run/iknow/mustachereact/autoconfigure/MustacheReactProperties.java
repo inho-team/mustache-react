@@ -26,6 +26,15 @@ public class MustacheReactProperties {
      */
     private boolean contentNegotiation = true;
 
+    /** Location of the Vite manifest written by the frontend build. */
+    private String manifestLocation = "classpath:/static/mustache-react/.vite/manifest.json";
+
+    /** URL path the built frontend assets are served from. Must match the Vite {@code base}. */
+    private String publicPath = "/mustache-react/";
+
+    /** Mustache layout for {@code @ReactPage} pages. The built-in layout is used when this resource does not exist. */
+    private String layout = "classpath:/templates/mustache-react/layout.mustache";
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -56,6 +65,30 @@ public class MustacheReactProperties {
 
     public void setContentNegotiation(boolean contentNegotiation) {
         this.contentNegotiation = contentNegotiation;
+    }
+
+    public String getManifestLocation() {
+        return manifestLocation;
+    }
+
+    public void setManifestLocation(String manifestLocation) {
+        this.manifestLocation = manifestLocation;
+    }
+
+    public String getPublicPath() {
+        return publicPath;
+    }
+
+    public void setPublicPath(String publicPath) {
+        this.publicPath = publicPath;
+    }
+
+    public String getLayout() {
+        return layout;
+    }
+
+    public void setLayout(String layout) {
+        this.layout = layout;
     }
 
     /** Server-side rendering mode. */

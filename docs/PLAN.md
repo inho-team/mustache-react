@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: 초안 (v0.2) · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.3 · M1 완료 · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -80,7 +80,32 @@ export default function OrderList({ content, totalPages }: OrderListResponse) {
 
 - 컴포넌트 이름 `"orders/OrderList"`는 `src/main/frontend/pages/orders/OrderList.tsx` 파일에 대응한다(관례 기반).
 - 레이아웃은 기본값을 제공하고, `templates/mustache-react/layout.mustache`를 두면 그 파일로 교체된다.
-- `@ReactPage`는 `@Controller` 메서드에서도 쓸 수 있다. 이 경우 반환값이나 `Model`이 props가 된다.
+- `@ReactPage`는 `@Controller` 메서드에서도 쓸 수 있다. 반환값이 props가 된다.
+- 반환값은 DTO나 `Map`처럼 **JSON 객체가 되는 값**이어야 한다. `null`은 빈 props로 처리한다. `ResponseEntity` 반환은 아직 지원하지 않는다.
+
+**HTML과 JSON 중 무엇으로 응답할지 정하는 규칙**
+
+| `Accept` 헤더 | 응답 |
+|---|---|
+| `text/html` 또는 `application/xhtml+xml`이 있고, JSON보다 우선순위(q)가 낮지 않음 (브라우저 주소창 이동) | HTML 페이지 |
+| 그 외 (`*/*`, `application/json`, 헤더 없음: curl, `fetch`, API 클라이언트) | JSON |
+
+- 두 응답 모두 `Vary: Accept` 헤더를 붙여서 캐시가 둘을 섞지 않게 한다.
+- `mustache-react.content-negotiation=false`로 설정하면 항상 HTML로 응답한다.
+- props JSON은 Spring MVC에 등록된 **HttpMessageConverter**로 만든다. 그래서 API 응답 JSON과 정확히 같다. Jackson 2(Boot 2.7/3.x), Jackson 3(Boot 4), Gson과 애플리케이션의 Jackson 설정이 모두 그대로 적용된다.
+
+**레이아웃**
+
+`templates/mustache-react/layout.mustache`를 두면 기본 레이아웃 대신 그 파일을 쓴다. 애플리케이션의 Mustache 컴파일러로 컴파일하므로 partial도 쓸 수 있다.
+
+| 변수 | 내용 |
+|---|---|
+| `{{title}}` | `@ReactPage(title=...)`. 비어 있으면 페이지 이름 |
+| `{{lang}}` | 요청 locale의 언어 태그 |
+| `{{page}}` | 페이지 이름 (`orders/OrderList`) |
+| `{{{mr.head}}}` | CSS와 modulepreload 태그 |
+| `{{{mr.page}}}` | React가 렌더링할 요소와 props script |
+| `{{{mr.scripts}}}` | 엔트리 script 태그 |
 
 ### 5-2. 기존 Mustache 화면에 일부만 React 삽입 (보조 기능)
 
@@ -135,9 +160,12 @@ const { user, csrf, locale, messages } = useServerContext();
 
 ```yaml
 mustache-react:
-  ssr: off             # off | auto | always
+  ssr: off                     # off | auto | always (M5)
   frontend-dir: src/main/frontend
   content-negotiation: true
+  manifest-location: classpath:/static/mustache-react/.vite/manifest.json
+  public-path: /mustache-react/
+  layout: classpath:/templates/mustache-react/layout.mustache
 ```
 
 ## 6. 렌더링 흐름
@@ -157,6 +185,20 @@ Controller ─ @ReactPage 반환값 / Model ─▶ MustacheReact 렌더러
 - JSON 안의 `</script>`, `<!--`, U+2028/2029는 이스케이프해서 XSS를 막는다.
 - 실패하면 개발 모드에서는 화면에 에러 박스를 띄우고, 운영 모드에서는 로그를 남기고 빈 island를 출력한다(`strict` 옵션을 켜면 예외).
 
+### 6-1. 프론트엔드 디렉터리 관례
+
+```
+src/main/frontend/
+├── pages/            # @ReactPage("orders/OrderList") → pages/orders/OrderList.tsx (default export)
+├── islands/          # (M2) Mustache 화면에 넣는 부분 컴포넌트
+└── app.tsx           # (선택) 모든 페이지와 island를 감싸는 컴포넌트: 테마, QueryClient 등
+```
+
+- `@mustache-react/vite-plugin`이 클라이언트 엔트리를 자동으로 생성한다. 사용자가 `main.tsx`를 작성할 필요가 없다.
+- 페이지 파일은 lazy chunk로 분리한다. 서버는 manifest를 보고 현재 페이지의 chunk를 `modulepreload`로 미리 받게 한다.
+- 빌드 결과는 `build/mustache-react/static/mustache-react/`(Gradle 기준)에 생성되고, 리소스에 포함되어 `/mustache-react/**` 경로로 서빙된다.
+- M4 전까지는 사용자가 `src/main/frontend`에 `package.json`과 `vite.config.ts`를 직접 둔다(예제 참고). M4부터는 빌드 플러그인이 이 설정을 대신한다.
+
 ## 7. 기술적 제약과 대응
 
 ### 7-1. Java 8과 Spring Boot 2.7/3.5/4.x 동시 지원
@@ -169,6 +211,8 @@ Controller ─ @ReactPage 반환값 / Model ─▶ MustacheReact 렌더러
 
 - 라이브러리는 **Java 8 바이트코드**(`--release 8`)로 컴파일하고, **Boot 2.7 API를 기준으로** 작성한다.
 - **Servlet API에 직접 의존하지 않는다.** 요청 정보는 `RequestContextHolder`와 `RequestAttributes`로 읽는다.
+  - 예를 들어 `View` 인터페이스는 메서드 시그니처에 servlet 타입이 들어 있어 구현하지 않는다. 대신 응답을 `ResponseEntity`로 만들어 Spring MVC의 기존 핸들러에 맡긴다.
+  - 그 기존 핸들러도 Spring 버전마다 다르다(5.3은 `HttpEntityMethodProcessor`, 6 이상은 이를 감싼 `ResponseEntityReturnValueHandler`). 그래서 클래스 이름으로 찾지 않고 "`ResponseEntity`를 지원하는가"로 찾는다.
 - Auto-configuration은 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 하나로 등록한다. 2.7부터 4.x까지 모두 읽는 형식이다.
 - 다른 auto-configuration과의 순서는 클래스 대신 이름 문자열(`afterName`)로 지정한다. Boot 4에서 패키지가 바뀌었기 때문이다.
 - CI에서 (Boot 2.7, Java 8), (Boot 3.5, Java 17), (Boot 4.x, Java 21) 조합으로 같은 테스트를 실행한다.
@@ -229,8 +273,8 @@ mustache-react/
 
 | 단계 | 범위 | 완료 기준 |
 |---|---|---|
-| **M0. 뼈대** | Gradle 멀티모듈, pnpm workspace, Boot 버전 매트릭스 CI, 라이선스, 기여 가이드, 예제 앱 | 세 가지 Boot 조합 모두에서 CI 통과, 예제 기동 |
-| **M1. `@ReactPage` CSR MVP** | manifest 리졸버, 레이아웃, `@ReactPage` 반환값 처리, content negotiation, client mount | 예제의 `/orders`가 브라우저에서는 React, curl에서는 JSON으로 응답 |
+| ✅ **M0. 뼈대** | Gradle 멀티모듈, pnpm workspace, Boot 버전 매트릭스 CI, 라이선스, 기여 가이드, 예제 앱 | 세 가지 Boot 조합 모두에서 CI 통과, 예제 기동 |
+| ✅ **M1. `@ReactPage` CSR MVP** | manifest 리졸버, 레이아웃, `@ReactPage` 반환값 처리, content negotiation, client mount | 예제의 `/orders`가 브라우저에서는 React, curl에서는 JSON으로 응답 |
 | **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
 | **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
 | **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |

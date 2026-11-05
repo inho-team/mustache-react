@@ -1,0 +1,17 @@
+{
+  "pages/orders/OrderList.tsx": {
+    "file": "assets/OrderList-test.js",
+    "name": "OrderList",
+    "src": "pages/orders/OrderList.tsx",
+    "isDynamicEntry": true,
+    "imports": ["virtual:mustache-react/entry"]
+  },
+  "virtual:mustache-react/entry": {
+    "file": "assets/mustache-react-test.js",
+    "name": "mustache-react",
+    "src": "virtual:mustache-react/entry",
+    "isEntry": true,
+    "dynamicImports": ["pages/orders/OrderList.tsx"],
+    "css": ["assets/mustache-react-test.css"]
+  }
+}

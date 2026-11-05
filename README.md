@@ -11,20 +11,22 @@ public class OrderController {
 
     @ReactPage("orders/OrderList")   // 브라우저로 접속하면 React 페이지, API 호출이면 JSON
     @GetMapping("/orders")
-    public OrderListResponse list(Pageable pageable) {
-        return orderService.list(pageable);
+    public OrderListResponse list() {
+        return orderService.list();
     }
 }
 ```
 
 ```tsx
 // src/main/frontend/pages/orders/OrderList.tsx
-export default function OrderList({ content }: OrderListResponse) {
-  return <DataGrid rows={content} />;
+export default function OrderList({ orders, total }: OrderListResponse) {
+  return <DataGrid rows={orders} />;
 }
 ```
 
-> **상태:** 개발 초기(M0, 뼈대 단계)입니다. 위 API는 목표 모습이며 아직 동작하지 않습니다.
+같은 `/orders` URL을 브라우저로 열면 React 화면이, curl이나 `fetch`로 부르면 기존 JSON이 응답됩니다.
+
+> **상태:** 개발 초기입니다. M1(`@ReactPage` CSR)까지 동작하며, 아직 배포된 버전은 없습니다.
 > 설계와 로드맵은 [docs/PLAN.md](docs/PLAN.md)에 있습니다.
 
 ## 지원 범위 (목표)
@@ -65,10 +67,26 @@ Spring Boot 버전과 테스트 JDK를 바꿔서 실행할 수 있습니다.
 ./gradlew build -PspringBootVersion=4.1.2 -PtestJavaVersion=21
 ```
 
-예제 앱 실행:
+예제 앱 실행 (프론트도 함께 빌드됩니다):
+
+```bash
+pnpm install
+```
 
 ```bash
 ./gradlew :examples:basic:run
+```
+
+<http://localhost:8080/orders>를 브라우저로 열면 React 화면이 나옵니다. 같은 URL을 curl로 호출하면 JSON이 나옵니다.
+
+```bash
+curl http://localhost:8080/orders
+```
+
+브라우저 e2e 테스트 (앱을 18080 포트로 띄운 상태에서):
+
+```bash
+BASE_URL=http://localhost:18080 pnpm e2e
 ```
 
 자세한 내용은 [CONTRIBUTING.md](CONTRIBUTING.md)를 보세요.
