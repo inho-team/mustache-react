@@ -17,7 +17,6 @@ import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 
 import run.iknow.mustachereact.core.IslandMarkup;
-import run.iknow.mustachereact.core.PageAssets;
 
 /**
  * Renders a full HTML page for a React page component, using a Mustache layout.
@@ -40,9 +39,8 @@ public class ReactPageRenderer {
 
     private final ResourceLoader resourceLoader;
     private final Mustache.Compiler compiler;
-    private final ViteManifestSource manifest;
+    private final FrontendAssets assets;
     private final String layoutLocation;
-    private final String publicPath;
     private final boolean contentNegotiation;
 
     private final AtomicReference<Template> layout = new AtomicReference<>();
@@ -50,18 +48,16 @@ public class ReactPageRenderer {
     /**
      * @param resourceLoader loads the manifest and the layout
      * @param compiler the application's Mustache compiler, so that layouts can use its partials and settings
-     * @param manifest the Vite manifest
+     * @param assets produces the asset tags (built files or Vite dev server)
      * @param layoutLocation location of the application's layout; the built-in layout is used if it does not exist
-     * @param publicPath URL path the built assets are served from, e.g. {@code /mustache-react/}
      * @param contentNegotiation whether requests for JSON get the data instead of the page
      */
-    public ReactPageRenderer(ResourceLoader resourceLoader, Mustache.Compiler compiler, ViteManifestSource manifest,
-            String layoutLocation, String publicPath, boolean contentNegotiation) {
+    public ReactPageRenderer(ResourceLoader resourceLoader, Mustache.Compiler compiler, FrontendAssets assets,
+            String layoutLocation, boolean contentNegotiation) {
         this.resourceLoader = resourceLoader;
         this.compiler = compiler;
-        this.manifest = manifest;
+        this.assets = assets;
         this.layoutLocation = layoutLocation;
-        this.publicPath = publicPath;
         this.contentNegotiation = contentNegotiation;
     }
 
@@ -83,12 +79,10 @@ public class ReactPageRenderer {
      */
     public String render(String page, String title, String propsJson, Locale locale) {
         String component = PAGES_DIRECTORY + IslandMarkup.requireValidName(page);
-        PageAssets assets = manifest.get().assetsFor(component);
-
         Map<String, Object> mr = new HashMap<>();
-        mr.put("head", assets.headTags(publicPath));
+        mr.put("head", assets.pageHead(component));
         mr.put("page", IslandMarkup.render(component, "mr-page", propsJson, null));
-        mr.put("scripts", assets.scriptTags(publicPath));
+        mr.put("scripts", assets.pageScripts(component));
 
         Map<String, Object> context = new HashMap<>();
         context.put("title", title == null || title.isEmpty() ? page : title);

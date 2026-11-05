@@ -7,6 +7,9 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
+import run.iknow.mustachereact.spring.DevServerFrontendAssets;
+import run.iknow.mustachereact.spring.FrontendAssets;
+import run.iknow.mustachereact.spring.ManifestFrontendAssets;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
 
@@ -37,6 +40,17 @@ class MustacheReactAutoConfigurationTest {
                     assertThat(properties.getSsr()).isEqualTo(MustacheReactProperties.SsrMode.AUTO);
                     assertThat(properties.isContentNegotiation()).isFalse();
                     assertThat(context.getBean(ReactPageRenderer.class).isContentNegotiation()).isFalse();
+                });
+    }
+
+    @Test
+    void usesTheBuiltFilesByDefaultAndTheDevServerWhenEnabled() {
+        runner.run(context -> assertThat(context.getBean(FrontendAssets.class)).isInstanceOf(ManifestFrontendAssets.class));
+        runner.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.url=http://127.0.0.1:5199/")
+                .run(context -> {
+                    FrontendAssets assets = context.getBean(FrontendAssets.class);
+                    assertThat(assets).isInstanceOf(DevServerFrontendAssets.class);
+                    assertThat(assets.viewHead()).contains("http://127.0.0.1:5199/mustache-react/@vite/client");
                 });
     }
 

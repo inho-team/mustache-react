@@ -13,6 +13,12 @@ export const DEFAULT_OUT_DIR = '../../../build/mustache-react/static/mustache-re
 const ENTRY_ID = 'virtual:mustache-react/entry';
 const RESOLVED_ENTRY_ID = '\0' + ENTRY_ID;
 
+/** Default port of the dev server. Must match `mustache-react.dev-server.url`. */
+export const DEFAULT_DEV_PORT = 5173;
+
+/** Mustache templates, relative to the frontend directory, for a Gradle/Maven project. */
+export const DEFAULT_TEMPLATES_DIR = '../resources/templates';
+
 export interface MustacheReactOptions {
   /**
    * Where to write the build. Spring must serve this directory at {@link base}.
@@ -21,6 +27,13 @@ export interface MustacheReactOptions {
   outDir?: string;
   /** Public URL path of the assets. Must match `mustache-react.public-path`. Default: `/mustache-react/`. */
   base?: string;
+  /** Dev server port. Must match `mustache-react.dev-server.url`. Default: 5173. */
+  port?: number;
+  /**
+   * Mustache templates to watch in development; the browser reloads when one changes.
+   * Default: `../resources/templates` (that is, `src/main/resources/templates`). `false` turns it off.
+   */
+  templatesDir?: string | false;
 }
 
 /**
@@ -34,7 +47,7 @@ export function entrySource(): string {
     `import { bootstrap } from '@mustache-react/client';`,
     `const app = import.meta.glob('/app.{tsx,jsx,ts,js}', { eager: true });`,
     `const wrapper = Object.values(app)[0]?.default;`,
-    `bootstrap(import.meta.glob(['/pages/**/*.{tsx,jsx}', '/islands/**/*.{tsx,jsx}']), { wrapper });`,
+    `bootstrap(import.meta.glob(['/pages/**/*.{tsx,jsx}', '/islands/**/*.{tsx,jsx}']), { wrapper, dev: import.meta.env.DEV });`,
     ``,
   ].join('\n');
 }
@@ -44,15 +57,36 @@ export function entrySource(): string {
  *
  * Run Vite from the frontend directory (`src/main/frontend`). The plugin generates the client entry,
  * writes a manifest the Spring side reads, and puts the output where Spring serves static files.
+ *
+ * In development (`vite`), Spring pages load modules from this dev server
+ * (`mustache-react.dev-server.enabled=true`): the plugin fixes the port, makes asset URLs absolute so they point here
+ * rather than at Spring, and reloads the browser when a Mustache template changes.
  */
 export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
+  const port = options.port ?? DEFAULT_DEV_PORT;
+  let templatesDir: string | undefined;
   return {
     name: 'mustache-react',
     config(userConfig) {
       const root = path.resolve(userConfig.root ?? process.cwd());
       const outDir = path.resolve(root, options.outDir ?? process.env.MUSTACHE_REACT_OUT_DIR ?? DEFAULT_OUT_DIR);
+      templatesDir =
+        options.templatesDir === false ? undefined : path.resolve(root, options.templatesDir ?? DEFAULT_TEMPLATES_DIR);
       return {
         base: options.base ?? DEFAULT_BASE,
+        server: {
+          port,
+          strictPort: true,
+          // The page comes from Spring (another origin): asset URLs must name the dev server.
+          origin: `http://localhost:${port}`,
+        },
+        // Vite finds the dependencies to pre-bundle by scanning index.html, which Spring replaces. Scanning the
+        // components instead avoids a full page reload when a page first imports a library.
+        optimizeDeps: {
+          entries: ['pages/**/*.{tsx,jsx}', 'islands/**/*.{tsx,jsx}', 'app.{tsx,jsx,ts,js}'],
+          // Imported by @mustache-react/client from the generated entry, which the scan does not see.
+          include: ['react', 'react-dom/client'],
+        },
         build: {
           manifest: true,
           outDir,
@@ -62,6 +96,21 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
           },
         },
       };
+    },
+    configureServer(server) {
+      if (!templatesDir) {
+        return;
+      }
+      const dir = templatesDir;
+      server.watcher.add(dir);
+      const reload = (file: string) => {
+        if (file.startsWith(dir) && file.endsWith('.mustache')) {
+          server.config.logger.info(`mustache-react: ${path.relative(dir, file)} changed, reloading`, { timestamp: true });
+          server.ws.send({ type: 'full-reload', path: '*' });
+        }
+      };
+      server.watcher.on('change', reload);
+      server.watcher.on('add', reload);
     },
     resolveId(id) {
       return id === ENTRY_ID ? RESOLVED_ENTRY_ID : undefined;

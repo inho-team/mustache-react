@@ -100,3 +100,36 @@ jobs:
       - name: App log
         if: failure()
         run: cat app.log
+
+  dev-e2e:
+    name: Dev server e2e (HMR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Start the Vite dev server and the app in the dev profile
+        run: |
+          pnpm dev:example > vite.log 2>&1 &
+          ./gradlew :examples:basic:run -PskipFrontend --args="--server.port=18080 --spring.profiles.active=dev" > app.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -sf -o /dev/null http://localhost:18080/ && curl -sf -o /dev/null http://localhost:5173/mustache-react/@vite/client && exit 0
+            sleep 2
+          done
+          cat vite.log app.log; exit 1
+      - run: pnpm e2e:dev
+        env:
+          BASE_URL: http://localhost:18080
+      - name: Logs
+        if: failure()
+        run: cat vite.log app.log

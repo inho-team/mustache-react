@@ -61,5 +61,17 @@ describe('bootstrap', () => {
     expect(document.querySelector('[data-mr-island="pages/Ok"]')!.textContent).toBe('ok');
     expect(error).toHaveBeenCalledOnce();
     expect(String(error.mock.calls[0]![1])).toContain('No component file for "pages/Missing"');
+    expect(document.querySelector('[data-mr-error]')).toBeNull();
+  });
+
+  it('shows mount errors in place in development', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    page('<div data-mr-island="islands/Missing"></div>');
+
+    await bootstrap({}, { dev: true });
+
+    const box = document.querySelector('[data-mr-island="islands/Missing"] [data-mr-error]');
+    expect(box?.textContent).toContain('"islands/Missing" failed to mount');
+    expect(box?.textContent).toContain('No component file for "islands/Missing"');
   });
 });

@@ -16,8 +16,8 @@ class ReactPageRendererTest {
 
     private ReactPageRenderer renderer(String manifest, String layout) {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        return new ReactPageRenderer(loader, Mustache.compiler(), new ViteManifestSource(loader, manifest), layout,
-                "/mustache-react/", true);
+        FrontendAssets assets = new ManifestFrontendAssets(new ViteManifestSource(loader, manifest), "/mustache-react/");
+        return new ReactPageRenderer(loader, Mustache.compiler(), assets, layout, true);
     }
 
     @Test
@@ -52,6 +52,22 @@ class ReactPageRendererTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Vite manifest not found")
                 .hasMessageContaining("mustache-react.manifest-location");
+    }
+
+    @Test
+    void loadsFromTheDevServerWithoutAManifest() {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        ReactPageRenderer renderer = new ReactPageRenderer(loader, Mustache.compiler(),
+                new DevServerFrontendAssets(new run.iknow.mustachereact.core.ViteDevServer("http://localhost:5173/mustache-react/")),
+                "classpath:/does-not-exist.mustache", true);
+
+        String html = renderer.render("orders/OrderList", "", "{}", Locale.ENGLISH);
+
+        assertThat(html)
+                .contains("http://localhost:5173/mustache-react/@react-refresh")
+                .contains("<script type=\"module\" src=\"http://localhost:5173/mustache-react/@vite/client\"></script>")
+                .contains("src=\"http://localhost:5173/mustache-react/@id/__x00__virtual:mustache-react/entry\"")
+                .doesNotContain("modulepreload");
     }
 
     @Test

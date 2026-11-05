@@ -18,6 +18,8 @@ export interface BootstrapOptions {
   wrapper?: ComponentType<{ children?: ReactNode }>;
   /** Element to search for islands. Default: `document`. */
   root?: ParentNode;
+  /** Development mode: an island that fails to mount shows the error in place. */
+  dev?: boolean;
 }
 
 /**
@@ -64,7 +66,11 @@ export function bootstrap(loaders: ComponentLoaders, options: BootstrapOptions =
   return Promise.all(
     elements.map((element) =>
       mountIsland(element, registry, options, scope).catch((error: unknown) => {
-        console.error(`[mustache-react] Failed to mount island "${element.getAttribute(Protocol.ISLAND_ATTRIBUTE)}"`, error);
+        const name = element.getAttribute(Protocol.ISLAND_ATTRIBUTE);
+        console.error(`[mustache-react] Failed to mount island "${name}"`, error);
+        if (options.dev) {
+          showError(element, name ?? '', error);
+        }
       }),
     ),
   ).then(() => undefined);
@@ -98,4 +104,15 @@ async function mountIsland(
   } else {
     createRoot(element).render(tree);
   }
+}
+
+/** Shows a mount error inside the island element (development only). */
+function showError(element: HTMLElement, name: string, error: unknown): void {
+  const box = document.createElement('pre');
+  box.setAttribute('data-mr-error', '');
+  box.style.cssText =
+    'margin:0;padding:8px 12px;border:2px solid #cf222e;border-radius:6px;background:#ffebe9;color:#82071e;' +
+    'font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;text-align:left';
+  box.textContent = `mustache-react: "${name}" failed to mount\n${error instanceof Error ? error.message : String(error)}`;
+  element.replaceChildren(box);
 }

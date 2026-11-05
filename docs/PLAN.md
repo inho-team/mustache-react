@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: v0.4 · M2 완료 · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.5 · M3 완료 · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -188,6 +188,13 @@ mustache-react:
   manifest-location: classpath:/static/mustache-react/.vite/manifest.json
   public-path: /mustache-react/
   layout: classpath:/templates/mustache-react/layout.mustache
+  dev-server:
+    enabled: false             # true: Vite dev server에서 모듈을 받음 (개발 프로파일용)
+    url: http://localhost:5173
+  template:
+    react-name: react
+    helpers-name: mr
+    model-attributes: true
 ```
 
 ## 6. 렌더링 흐름
@@ -205,8 +212,8 @@ Controller ─ @ReactPage 반환값 / Model ─▶ MustacheReact 렌더러
 ```
 
 - JSON 안의 `</script>`, `<!--`, U+2028/2029는 이스케이프해서 XSS를 막는다.
-- 서버 쪽 오류(manifest 없음, 잘못된 island 문법, 없는 Model 이름)는 Mustache 템플릿 오류처럼 렌더링을 중단하고 원인을 메시지로 알린다. 개발 모드에서 화면에 오류를 띄우는 기능은 M3에서 다룬다.
-- 브라우저 쪽에서는 island 하나가 실패해도 나머지 island는 마운트된다.
+- 서버 쪽 오류(manifest 없음, 잘못된 island 문법, 없는 Model 이름)는 Mustache 템플릿 오류처럼 렌더링을 중단하고 원인을 메시지로 알린다.
+- 브라우저 쪽에서는 island 하나가 실패해도 나머지 island는 마운트된다. 개발 모드에서는 실패한 island 자리에 오류 박스를 보여 준다.
 
 ### 6-1. 프론트엔드 디렉터리 관례
 
@@ -253,9 +260,67 @@ Java 8의 Nashorn은 최신 React SSR에 쓸 수 없고, GraalJS는 Java 17 이�
 
 ### 7-3. Java DTO에서 TS 타입 생성
 
-- **annotation processor**(`mustache-react-processor`)를 쓴다. Java 8에서 동작하고, Gradle/Maven 어느 쪽이든 javac 단계에서 실행된다.
-- `@ReactPage` 메서드의 반환 타입과 파라미터 DTO를 따라가며 `.d.ts` 파일을 만든다.
-- Jackson 어노테이션(`@JsonProperty`, `@JsonIgnore`)을 반영하고, 날짜 타입은 설정에 따라 `string`이나 `number`로 매핑한다.
+**annotation processor** `mustache-react-processor`를 쓴다. Java 8에서 동작하고, Gradle/Maven 어느 쪽이든 javac 단계에서 실행된다.
+
+```kotlin
+// build.gradle.kts (M4부터는 빌드 플러그인이 대신 설정)
+dependencies { annotationProcessor("run.iknow:mustache-react-processor") }
+tasks.compileJava {
+    options.compilerArgs.add("-Amustachereact.typesFile=${projectDir}/src/main/frontend/generated/types.ts")
+}
+```
+
+**생성 대상과 결과물**
+
+- 대상은 `@ReactPage` 메서드의 반환 타입과 `@ReactType`을 붙인 클래스, 그리고 이 클래스들이 참조하는 모든 클래스다. island props용 DTO에는 `@ReactType`을 붙인다.
+- 결과물은 TS 파일 하나다. 클래스마다 `interface`가, enum마다 문자열 union이 만들어진다.
+- 페이지 이름과 props 타입을 연결하는 `ReactPages` 맵과 `PageProps<'orders/OrderList'>` 헬퍼도 함께 만든다.
+
+**타입 매핑**
+
+Spring Boot 기본 Jackson 설정이 실제로 내보내는 JSON을 기준으로 맞춘다.
+
+| Java | TypeScript |
+|---|---|
+| 숫자 타입, `BigDecimal` | `number` |
+| `String`, `UUID`, `java.time.*`, `Date` | `string` (날짜는 ISO 문자열) |
+| 컬렉션, 배열 | `T[]` |
+| `byte[]` | `string` (Base64) |
+| `Map` | `Record<string, V>` |
+| `Optional<T>`, `@Nullable` | `T \| null` |
+| enum | 문자열 union (`@JsonProperty` 반영) |
+| 제네릭 클래스 | 제네릭 interface |
+| 상속 | 상위 클래스 속성을 펼쳐서 포함 |
+
+- 속성 이름은 Jackson 규칙을 따른다. 예를 들어 `getURL`은 `url`이 된다.
+- `@JsonIgnore`, `@JsonProperty`, `@JsonIgnoreProperties`를 반영한다.
+- record 컴포넌트와 Lombok `@Data`/`@Getter`/`@Value` 필드도 읽는다.
+- 그 밖의 null 가능 여부는 타입에 표시하지 않는다. null이 될 수 있는 값은 `@Nullable`로 표시한다.
+
+**동작 방식**
+
+- 파일 위치는 `-Amustachereact.typesFile` 옵션으로 정한다. 내용이 바뀔 때만 다시 쓰므로 Vite 감시가 불필요하게 반응하지 않는다.
+- 생성된 파일은 커밋한다. CI는 Java 빌드 후 이 파일이 커밋본과 다르면 실패한다. 덕분에 DTO를 바꾸면 TS 쪽 타입 에러로 바로 드러난다.
+
+### 7-5. 개발 모드 (Vite dev server)
+
+```properties
+# application-dev.properties
+mustache-react.dev-server.enabled=true
+spring.mustache.prefix=file:src/main/resources/templates/   # 템플릿 수정을 빌드 없이 반영
+spring.mustache.servlet.cache=false
+```
+
+- 페이지는 Spring이 렌더링하고, JS/CSS 모듈은 Vite dev server(`http://localhost:5173`)에서 받는다. 프론트를 빌드하거나 manifest를 만들 필요가 없다.
+- 서버는 Vite가 원래 `index.html`에 넣는 태그를 직접 출력한다. React Refresh preamble, `@vite/client`, 생성된 엔트리가 그것이다. preamble은 `@vitejs/plugin-react` 4부터 6까지 동작하는 형식으로 쓴다.
+- vite-plugin의 개발 모드 동작은 다음과 같다.
+  - 포트를 고정한다(`strictPort`).
+  - 에셋 URL이 Spring이 아니라 dev server를 가리키도록 `server.origin`을 설정한다.
+  - `pages/`, `islands/`, `app.tsx`를 의존성 스캔 대상으로 지정한다. HTML이 없어 Vite가 스캔할 곳이 없기 때문이며, 덕분에 첫 방문 때 의존성 재최적화로 페이지가 새로고침되지 않는다.
+  - `src/main/resources/templates/**/*.mustache`가 바뀌면 브라우저를 새로고침한다.
+- 컴포넌트 수정은 HMR로 그 자리에서 반영되고, React 상태도 유지된다.
+- 개발 모드에서는 island 마운트가 실패하면 그 자리에 오류 박스를 보여 준다.
+- M4에서는 빌드 플러그인이 Vite dev server를 함께 띄우게 한다(`bootRun` 하나로 실행).
 
 ### 7-4. Gradle과 Maven 지원
 
@@ -277,7 +342,7 @@ mustache-react/
 │   ├── mustache-react-spring                  # Spring MVC 통합: @ReactPage, Mustache 람다
 │   ├── mustache-react-spring-boot-autoconfigure
 │   ├── mustache-react-spring-boot-starter
-│   ├── mustache-react-processor               # (M3) DTO → TS 타입
+│   ├── mustache-react-processor               # DTO → TS 타입 (annotation processor)
 │   ├── mustache-react-ssr-node                # (M5)
 │   └── mustache-react-ssr-graaljs             # (M7)
 ├── build-plugins/                             # (M4)
@@ -299,7 +364,7 @@ mustache-react/
 | ✅ **M0. 뼈대** | Gradle 멀티모듈, pnpm workspace, Boot 버전 매트릭스 CI, 라이선스, 기여 가이드, 예제 앱 | 세 가지 Boot 조합 모두에서 CI 통과, 예제 기동 |
 | ✅ **M1. `@ReactPage` CSR MVP** | manifest 리졸버, 레이아웃, `@ReactPage` 반환값 처리, content negotiation, client mount | 예제의 `/orders`가 브라우저에서는 React, curl에서는 JSON으로 응답 |
 | ✅ **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
-| **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
+| ✅ **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
 | **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
 | **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |
 | **M6. 첫 릴리스** | Maven Central, npm 배포 자동화, 문서 사이트 | `0.1.0` 릴리스 |

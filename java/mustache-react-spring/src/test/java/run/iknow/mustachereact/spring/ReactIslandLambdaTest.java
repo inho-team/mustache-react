@@ -101,7 +101,7 @@ class ReactIslandLambdaTest {
         RequestContextHolder.setRequestAttributes(new MapRequestAttributes());
         model = new HashMap<>();
         model.put("react", new ReactIslandLambda(serializer));
-        model.put("mr", new MustacheReactHelpers(manifest, "/mustache-react/"));
+        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/")));
     }
 
     @AfterEach

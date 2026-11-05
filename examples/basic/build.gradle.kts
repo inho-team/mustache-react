@@ -51,6 +51,8 @@ val buildFrontend by tasks.registering(Exec::class) {
     workingDir = rootDir
     // The trailing "..." also builds the workspace packages the example depends on (@mustache-react/*).
     commandLine("pnpm", "--filter", "@mustache-react-examples/basic...", "run", "build")
+    // generated/types.ts, part of the sources below, is written by the annotation processor during compileJava.
+    dependsOn(tasks.named("compileJava"))
     inputs.files(fileTree("src/main/frontend") { exclude("node_modules/**") }).withPropertyName("sources")
     inputs.files(fileTree(rootDir.resolve("js")) { include("*/src/**", "*/package.json") }).withPropertyName("packages")
     outputs.dir(frontendOutput.map { it.dir("static") })

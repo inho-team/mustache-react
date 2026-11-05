@@ -38,6 +38,9 @@ public class MustacheReactProperties {
     /** Names under which Mustache views see the mustache-react helpers. */
     private final Template template = new Template();
 
+    /** Loading the frontend from a running Vite dev server, for development. */
+    private final DevServer devServer = new DevServer();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -96,6 +99,39 @@ public class MustacheReactProperties {
 
     public Template getTemplate() {
         return template;
+    }
+
+    public DevServer getDevServer() {
+        return devServer;
+    }
+
+    /** Settings under {@code mustache-react.dev-server.*}. */
+    public static class DevServer {
+
+        /**
+         * Whether pages load the frontend from the Vite dev server (hot module replacement, no build needed)
+         * instead of the built files. Enable it in a development profile only.
+         */
+        private boolean enabled = false;
+
+        /** Origin of the Vite dev server. The public path is appended. */
+        private String url = "http://localhost:5173";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
     }
 
     /** Settings under {@code mustache-react.template.*}. */

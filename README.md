@@ -19,10 +19,14 @@ public class OrderController {
 
 ```tsx
 // src/main/frontend/pages/orders/OrderList.tsx
-export default function OrderList({ orders, total }: OrderListResponse) {
+import type { PageProps } from '../../generated/types';   // Java DTO에서 자동 생성
+
+export default function OrderList({ orders, total }: PageProps<'orders/OrderList'>) {
   return <DataGrid rows={orders} />;
 }
 ```
+
+TS 타입은 annotation processor가 Java DTO에서 만듭니다. Java 필드 이름을 바꾸면 TS 쪽에서 컴파일 에러가 납니다.
 
 같은 `/orders` URL을 브라우저로 열면 React 화면이, curl이나 `fetch`로 부르면 기존 JSON이 응답됩니다.
 
@@ -39,7 +43,7 @@ export default function OrderList({ orders, total }: OrderListResponse) {
 {{{mr.scripts}}}
 ```
 
-> **상태:** 개발 초기입니다. M2(`@ReactPage` 페이지와 Mustache island, CSR)까지 동작하며, 아직 배포된 버전은 없습니다.
+> **상태:** 개발 초기입니다. M3(`@ReactPage` 페이지, Mustache island, DTO → TS 타입 생성, Vite HMR 개발 모드)까지 동작하며, 아직 배포된 버전은 없습니다.
 > 설계와 로드맵은 [docs/PLAN.md](docs/PLAN.md)에 있습니다.
 
 ## 지원 범위 (목표)
@@ -97,11 +101,23 @@ pnpm install
 curl http://localhost:8080/orders
 ```
 
+개발 모드에서는 컴포넌트 수정이 새로고침 없이 바로 반영되고(HMR), Mustache 템플릿 수정은 브라우저를 새로고침합니다. 터미널 두 개를 씁니다.
+
+```bash
+pnpm dev:example
+```
+
+```bash
+./gradlew :examples:basic:run -PskipFrontend --args=--spring.profiles.active=dev
+```
+
 브라우저 e2e 테스트 (앱을 18080 포트로 띄운 상태에서):
 
 ```bash
 BASE_URL=http://localhost:18080 pnpm e2e
 ```
+
+개발 모드 e2e(HMR, 템플릿 새로고침)는 위 개발 모드 상태에서 `pnpm e2e:dev`로 실행합니다.
 
 자세한 내용은 [CONTRIBUTING.md](CONTRIBUTING.md)를 보세요.
 
