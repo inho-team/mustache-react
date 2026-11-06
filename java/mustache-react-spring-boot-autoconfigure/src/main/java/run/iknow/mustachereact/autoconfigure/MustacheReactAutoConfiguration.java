@@ -41,6 +41,7 @@ import run.iknow.mustachereact.spring.PropsSerializer;
 import run.iknow.mustachereact.spring.ReactIslandLambda;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
+import run.iknow.mustachereact.spring.VersionContextContributor;
 import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ViteManifestSource;
 
@@ -164,6 +165,11 @@ public class MustacheReactAutoConfiguration {
     public ServerContextFactory mustacheReactServerContext(ObjectProvider<ServerContextContributor> contributors,
             PropsSerializer propsSerializer) {
         return new ServerContextFactory(contributors.orderedStream().collect(Collectors.toList()), propsSerializer);
+    }
+
+    @Bean
+    public ServerContextContributor mustacheReactVersionContext() {
+        return new VersionContextContributor();
     }
 
     @Bean

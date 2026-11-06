@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { createElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { bootstrap, readProps, toIslandName } from './bootstrap.js';
+import { bootstrap, readProps, resetVersionCheck, toIslandName } from './bootstrap.js';
+import { resetServerContext } from './context.js';
+import { VERSION } from './version.js';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -33,6 +35,32 @@ describe('readProps', () => {
   it('returns an empty object when there is no props script', () => {
     page('<div data-mr-island="pages/A" data-mr-id="mr-0"></div>');
     expect(readProps(document.querySelector('[data-mr-island]')!)).toEqual({});
+  });
+});
+
+describe('version check', () => {
+  it('warns once when the server runs another mustache-react version', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    page('<script type="application/json" id="mr-context">{"mustacheReact":{"version":"9.9.9"}}</script>');
+    resetServerContext();
+    resetVersionCheck();
+
+    await bootstrap({});
+    await bootstrap({});
+
+    expect(warn).toHaveBeenCalledOnce();
+    expect(String(warn.mock.calls[0]![0])).toContain(`mustache-react 9.9.9 but the page uses @mustache-react/client ${VERSION}`);
+  });
+
+  it('stays quiet when the versions match', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    page(`<script type="application/json" id="mr-context">{"mustacheReact":{"version":"${VERSION}"}}</script>`);
+    resetServerContext();
+    resetVersionCheck();
+
+    await bootstrap({});
+
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

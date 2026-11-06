@@ -30,6 +30,8 @@ export interface ServerContext {
   user?: ServerUser | null;
   messages?: Record<string, string>;
   errors?: ValidationErrors;
+  /** The Java library that rendered the page. */
+  mustacheReact?: { version: string };
   [key: string]: unknown;
 }
 

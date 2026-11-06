@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 
@@ -22,6 +23,12 @@ export const SSR_BUNDLE = 'server.mjs';
 
 /** Output directory of the SSR bundle, relative to the frontend directory, for a Gradle project. */
 export const DEFAULT_SSR_OUT_DIR = '../../../build/mustache-react/ssr';
+
+/** Written next to `.vite/` in the client build; Spring compares the version with its own. */
+export const BUILD_INFO = 'mustache-react-build.json';
+
+/** Version of this package, as in its package.json. */
+export const PLUGIN_VERSION: string = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
 /** Render endpoint on the SSR server and the dev server. Same path as in `@mustache-react/server`. */
 export const RENDER_PATH = '/__mustache-react/render';
@@ -107,11 +114,18 @@ export function ssrEntrySource(): string {
 export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
   const port = options.port ?? (Number(process.env.MUSTACHE_REACT_DEV_PORT) || DEFAULT_DEV_PORT);
   let templatesDir: string | undefined;
+  let ssrBuild = false;
   return {
     name: 'mustache-react',
+    generateBundle() {
+      if (!ssrBuild) {
+        this.emitFile({ type: 'asset', fileName: BUILD_INFO, source: JSON.stringify({ version: PLUGIN_VERSION }) + '\n' });
+      }
+    },
     config(userConfig, env) {
       const root = path.resolve(userConfig.root ?? process.cwd());
-      if (env?.isSsrBuild || userConfig.build?.ssr) {
+      ssrBuild = Boolean(env?.isSsrBuild || userConfig.build?.ssr);
+      if (ssrBuild) {
         // Vite 8 bundles with Rolldown, which renamed Rollup's inlineDynamicImports.
         const rolldown = 'rolldownVersion' in ((this as { meta?: object } | undefined)?.meta ?? {});
         const singleFile = rolldown ? { codeSplitting: false } : { inlineDynamicImports: true };
