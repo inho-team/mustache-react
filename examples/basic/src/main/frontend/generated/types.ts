@@ -13,6 +13,11 @@ export interface Order {
   orderedAt: string;
 }
 
+export interface OrderDetailPage {
+  id: number;
+  order: Order | null;
+}
+
 export interface OrderForm {
   customer: string;
   amount: number | null;
@@ -32,6 +37,7 @@ export type OrderStatus = 'PAID' | 'SHIPPED' | 'CANCELLED';
 /** Props of each @ReactPage, by page name. */
 export interface ReactPages {
   'auth/Login': LoginPage;
+  'orders/OrderDetail': OrderDetailPage;
   'orders/OrderForm': OrderFormPage;
   'orders/OrderList': OrderListResponse;
 }

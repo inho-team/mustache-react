@@ -2,11 +2,13 @@ package run.iknow.mustachereact.autoconfigure;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -17,7 +19,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.support.ResourcePatternUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import com.samskivert.mustache.Mustache;
@@ -30,6 +35,8 @@ import run.iknow.mustachereact.spring.HttpSsrEngine;
 import run.iknow.mustachereact.spring.NodeSsrServer;
 import run.iknow.mustachereact.spring.ServerSideRendering;
 import run.iknow.mustachereact.spring.LocaleContextContributor;
+import run.iknow.mustachereact.spring.MessageKeys;
+import run.iknow.mustachereact.spring.MessageLambda;
 import run.iknow.mustachereact.spring.MessagesContextContributor;
 import run.iknow.mustachereact.spring.SecurityContextContributors;
 import run.iknow.mustachereact.spring.ServerContextContributor;
@@ -41,6 +48,7 @@ import run.iknow.mustachereact.spring.PropsSerializer;
 import run.iknow.mustachereact.spring.ReactIslandLambda;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
+import run.iknow.mustachereact.spring.VersionContextContributor;
 import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ViteManifestSource;
 
@@ -167,14 +175,30 @@ public class MustacheReactAutoConfiguration {
     }
 
     @Bean
-    public ServerContextContributor mustacheReactLocaleContext() {
-        return new LocaleContextContributor();
+    public ServerContextContributor mustacheReactVersionContext() {
+        return new VersionContextContributor();
+    }
+
+    @Bean
+    public ServerContextContributor mustacheReactLocaleContext(MustacheReactProperties properties) {
+        return new LocaleContextContributor(properties.getI18n().getParam(), properties.getI18n().getLocales());
+    }
+
+    /** The keys of the message bundles, to expand patterns such as {@code orders.*}. */
+    @Bean
+    @ConditionalOnMissingBean
+    public MessageKeys mustacheReactMessageKeys(Environment environment, ResourceLoader resourceLoader) {
+        // The same bundles as Spring Boot's MessageSourceAutoConfiguration.
+        String basenames = environment.getProperty("spring.messages.basename", "messages");
+        String encoding = environment.getProperty("spring.messages.encoding", "UTF-8");
+        return new MessageKeys(ResourcePatternUtils.getResourcePatternResolver(resourceLoader),
+                StringUtils.commaDelimitedListToSet(StringUtils.trimAllWhitespace(basenames)), Charset.forName(encoding));
     }
 
     @Bean
     public ServerContextContributor mustacheReactMessagesContext(MessageSource messageSource,
-            MustacheReactProperties properties) {
-        return new MessagesContextContributor(messageSource, properties.getContext().getMessages());
+            MustacheReactProperties properties, MessageKeys messageKeys) {
+        return new MessagesContextContributor(messageSource, properties.getContext().getMessages(), messageKeys::all);
     }
 
     /** CSRF token and signed-in user, with Spring Security. */
@@ -216,8 +240,9 @@ public class MustacheReactAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public MustacheReactHelpers mustacheReactHelpers(FrontendAssets assets, ServerContextFactory serverContext) {
-        return new MustacheReactHelpers(assets, serverContext);
+    public MustacheReactHelpers mustacheReactHelpers(FrontendAssets assets, ServerContextFactory serverContext,
+            MessageSource messageSource) {
+        return new MustacheReactHelpers(assets, serverContext, new MessageLambda(messageSource));
     }
 
     /**
@@ -230,6 +255,12 @@ public class MustacheReactAutoConfiguration {
             ReactIslandLambda react, MustacheReactHelpers helpers) {
         return new MustacheReactModelAdvice(properties.getTemplate().getReactName(), react,
                 properties.getTemplate().getHelpersName(), helpers);
+    }
+
+    /** Mustache views in UTF-8 whatever the request language, see {@link MustacheCharsetPostProcessor}. */
+    @Bean
+    static BeanPostProcessor mustacheReactMustacheCharset(Environment environment) {
+        return new MustacheCharsetPostProcessor(environment);
     }
 
     /**

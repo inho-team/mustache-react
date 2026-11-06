@@ -50,7 +50,7 @@ class OrderFormTest {
         // Spring Security 7 adds factor authorities (FACTOR_PASSWORD); Jackson 3 orders properties alphabetically.
         assertThat(page.body)
                 .containsPattern("\"user\":\\{\"name\":\"kim\",\"authorities\":\\[[^\\]]*\"ROLE_USER\"")
-                .contains("\"messages\":{\"app.name\":\"mustache-react 예제\"}")
+                .contains("\"messages\":{\"app.name\":\"mustache-react 예제\",")
                 .contains("\"locale\":")
                 .contains("\"customer\":\"\"").contains("\"amount\":null");
         return page.csrfToken();

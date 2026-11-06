@@ -10,7 +10,7 @@ import run.iknow.mustachereact.spring.ReactPage;
 @Controller
 public class LoginController {
 
-    @ReactPage(value = "auth/Login", title = "로그인")
+    @ReactPage(value = "auth/Login", title = "login.title")
     @GetMapping("/login")
     public LoginPage login(@RequestParam(name = "error", required = false) String error) {
         return new LoginPage(error != null);

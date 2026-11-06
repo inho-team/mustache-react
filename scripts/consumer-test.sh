@@ -57,11 +57,14 @@ NODE
 echo "== bootJar (downloads Node.js, npm install, frontend and SSR build, type generation)"
 cd "$WORK/app"
 "$ROOT/gradlew" -p "$WORK/app" bootJar --console=plain
-test -x .mustache-react/node/*/bin/node || { echo "Node.js was not downloaded" >&2; exit 1; }
+# bin/node on Linux and macOS, node.exe at the top of the distribution on Windows.
+[[ -n "$(find .mustache-react/node -maxdepth 3 \( -path '*/bin/node' -o -name node.exe \) 2>/dev/null)" ]] \
+  || { echo "Node.js was not downloaded" >&2; exit 1; }
 JAR=$(ls build/libs/*.jar | grep -v plain | head -1)
 # Spring Boot moves META-INF/ of the resources to the jar root, which is on the class path too.
-# (The listing goes through a variable: grep -q closing the pipe early would fail the pipeline under pipefail.)
-LISTING=$(unzip -l "$JAR")
+# (The listing goes through a variable: grep -q closing the pipe early would fail the pipeline under pipefail.
+# jar comes with the JDK, unlike unzip on Windows.)
+LISTING=$(jar tf "$JAR")
 for entry in BOOT-INF/classes/static/mustache-react/.vite/manifest.json META-INF/mustache-react/ssr/server.mjs \
   BOOT-INF/lib/mustache-react-spring-boot-starter-; do
   grep -qF "$entry" <<<"$LISTING" || { echo "$JAR lacks $entry" >&2; exit 1; }

@@ -32,7 +32,7 @@ edit('gradle.properties', (s) => s.replace(/^version=.*$/m, `version=${version}`
 for (const pkg of ['client', 'server', 'vite-plugin']) {
   edit(`js/${pkg}/package.json`, (s) => s.replace(/"version": "[^"]*"/, `"version": "${version}"`));
 }
-edit('js/client/src/index.ts', (s) => s.replace(/export const VERSION = '[^']*';/, `export const VERSION = '${version}';`));
+edit('js/client/src/version.ts', (s) => s.replace(/export const VERSION = '[^']*';/, `export const VERSION = '${version}';`));
 edit('examples/basic/pom.xml', (s) =>
   s.replace(/<mustache-react\.version>[^<]*<\/mustache-react\.version>/, `<mustache-react.version>${version}</mustache-react.version>`),
 );

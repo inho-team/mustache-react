@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, ssrEntrySource } from './index.js';
+import { BUILD_INFO, DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, PLUGIN_VERSION, ssrEntrySource } from './index.js';
 
 type ConfigHook = (config: { root?: string }) => {
   base: string;
@@ -69,6 +69,20 @@ describe('mustacheReact', () => {
     expect(source).toContain("from '@mustache-react/server'");
     expect(source).toContain('{ eager: true }');
     expect(source).toContain('import.meta.url === pathToFileURL(process.argv[1]).href');
+  });
+
+  it('writes its version next to the manifest in client builds only', () => {
+    const emitted: unknown[] = [];
+    const context = { emitFile: (file: unknown) => emitted.push(file) };
+    const plugin = mustacheReact();
+    (plugin.config as unknown as (c: unknown, e: unknown) => unknown)({ root: '/app/src/main/frontend' }, { isSsrBuild: false });
+    (plugin.generateBundle as unknown as (this: typeof context) => void).call(context);
+    const ssr = mustacheReact();
+    (ssr.config as unknown as (c: unknown, e: unknown) => unknown)({ root: '/app/src/main/frontend' }, { isSsrBuild: true });
+    (ssr.generateBundle as unknown as (this: typeof context) => void).call(context);
+
+    expect(emitted).toEqual([{ type: 'asset', fileName: BUILD_INFO, source: `{"version":"${PLUGIN_VERSION}"}\n` }]);
+    expect(PLUGIN_VERSION).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it('accepts another output directory', () => {

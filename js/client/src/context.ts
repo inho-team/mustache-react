@@ -28,8 +28,13 @@ export interface ServerContext {
   locale?: string;
   csrf?: CsrfToken;
   user?: ServerUser | null;
+  /** Messages of the request locale, see `useMessages`. */
   messages?: Record<string, string>;
+  /** Language switching (`mustache-react.i18n.*`): the request parameter and the languages on offer. */
+  i18n?: { param?: string; locales: string[] };
   errors?: ValidationErrors;
+  /** The Java library that rendered the page. */
+  mustacheReact?: { version: string };
   [key: string]: unknown;
 }
 
@@ -69,7 +74,10 @@ export function useServerContext<T extends ServerContext = ServerContext>(): T {
   return (useContext(ServerContextReact) ?? serverContext()) as T;
 }
 
-/** A message from `mustache-react.context.messages`, or the key itself when it is not exposed. */
+/**
+ * A message from `mustache-react.context.messages`, or the key itself when it is not exposed.
+ * For `{0}` arguments, use `useMessages().t(key, ...args)`.
+ */
 export function message(key: string, context: ServerContext = serverContext()): string {
   return context.messages?.[key] ?? key;
 }

@@ -14,6 +14,22 @@ public OrderListResponse list() {
 - 반환값은 DTO, record, `Map`처럼 JSON 객체가 되는 값입니다. `null`이면 빈 props입니다.
 - `@RestController`와 `@Controller` 모두에서 쓸 수 있습니다.
 
+## 상태 코드와 헤더: `ResponseEntity`
+
+`ResponseEntity`를 반환하면 상태 코드와 헤더가 HTML 페이지와 JSON 응답 모두에 적용되고, body가 props가 됩니다.
+
+```java
+@ReactPage("orders/OrderDetail")
+@GetMapping("/orders/{id}")
+public ResponseEntity<OrderDetailPage> detail(@PathVariable("id") long id) {
+    return orders.findById(id)
+            .map(order -> ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(new OrderDetailPage(id, order)))
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(new OrderDetailPage(id, null)));
+}
+```
+
+타입 생성기는 `ResponseEntity<T>`의 `T`를 props 타입으로 씁니다.
+
 ## 같은 URL, HTML과 JSON
 
 | `Accept` | 응답 |

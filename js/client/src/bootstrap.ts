@@ -1,6 +1,8 @@
 import { createElement, Fragment, type ComponentType, type ReactNode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
+import { serverContext } from './context.js';
 import { Protocol } from './protocol.js';
+import { VERSION } from './version.js';
 
 /** A module whose default export is a React component (a file under `pages/` or `islands/`). */
 export interface ComponentModule {
@@ -57,6 +59,7 @@ export function readProps(element: Element, scope: ParentNode = document): Recor
  */
 export function bootstrap(loaders: ComponentLoaders, options: BootstrapOptions = {}): Promise<void> {
   const scope = options.root ?? document;
+  warnOnVersionMismatch();
   const registry = new Map<string, () => Promise<unknown>>();
   for (const [path, loader] of Object.entries(loaders)) {
     registry.set(toIslandName(path), loader);
@@ -115,4 +118,29 @@ function showError(element: HTMLElement, name: string, error: unknown): void {
     'font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;text-align:left';
   box.textContent = `mustache-react: "${name}" failed to mount\n${error instanceof Error ? error.message : String(error)}`;
   element.replaceChildren(box);
+}
+
+let versionChecked = false;
+
+/**
+ * Warns once when the Java library that rendered the page and this runtime have different versions. They are
+ * released together; mixing versions can break the protocol between them.
+ */
+export function warnOnVersionMismatch(): void {
+  if (versionChecked) {
+    return;
+  }
+  versionChecked = true;
+  const server = serverContext().mustacheReact?.version;
+  if (server && server !== VERSION) {
+    console.warn(
+      `[mustache-react] The server runs mustache-react ${server} but the page uses @mustache-react/client ${VERSION}. ` +
+        'Use the same version for the Java artifacts and the npm packages.',
+    );
+  }
+}
+
+/** For tests. */
+export function resetVersionCheck(): void {
+  versionChecked = false;
 }
