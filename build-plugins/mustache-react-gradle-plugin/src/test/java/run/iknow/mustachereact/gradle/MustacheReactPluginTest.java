@@ -27,7 +27,10 @@ import org.junit.jupiter.api.io.TempDir;
 class MustacheReactPluginTest {
 
     @TempDir
-    Path project;
+    Path tempDir;
+
+    /** The real path: on Windows the temp directory may be an 8.3 short name that Gradle expands. */
+    private Path project;
 
     private static final String FAKE_CLI = ""
             + "const fs = require('fs'), path = require('path');\n"
@@ -52,6 +55,7 @@ class MustacheReactPluginTest {
 
     @BeforeEach
     void createProject() throws IOException {
+        project = tempDir.toRealPath();
         write("settings.gradle", "rootProject.name = 'app'\n");
         write("build.gradle", ""
                 + "plugins {\n"
