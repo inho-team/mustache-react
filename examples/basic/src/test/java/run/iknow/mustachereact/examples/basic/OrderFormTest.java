@@ -16,7 +16,7 @@ import org.springframework.test.annotation.DirtiesContext;
  * Sign-in with Spring Security, the server context, and the order form: validation errors, redirect, CSRF.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "mustache-react.manifest-location=classpath:/test-manifest.json")
+        properties = {"mustache-react.manifest-location=classpath:/test-manifest.json", "mustache-react.ssr=off"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) // adds orders
 class OrderFormTest {
 

@@ -42,6 +42,10 @@ public abstract class MustacheReactBuildTask extends DefaultTask implements Node
     @Input
     public abstract Property<String> getPublicPath();
 
+    /** @return whether to build the SSR bundle too */
+    @Input
+    public abstract Property<Boolean> getSsr();
+
     /** @return the resources directory receiving {@code static/<public path>/} */
     @OutputDirectory
     public abstract DirectoryProperty getOutputDir();
@@ -59,7 +63,8 @@ public abstract class MustacheReactBuildTask extends DefaultTask implements Node
         File staticDir = new File(new File(output, "static"), publicPath.replaceAll("^/+|/+$", ""));
         try {
             new FrontendBuild(getFrontendDir().get().getAsFile().toPath(), node(getLogger()), NodeSettings.log(getLogger()))
-                    .build(staticDir.toPath(), publicPath);
+                    .build(staticDir.toPath(), publicPath,
+                            getSsr().get() ? new File(output, FrontendBuild.SSR_RESOURCE_DIR).toPath() : null);
         } catch (IOException ex) {
             throw new GradleException(ex.getMessage(), ex);
         }

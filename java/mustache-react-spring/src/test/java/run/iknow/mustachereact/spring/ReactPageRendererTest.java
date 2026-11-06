@@ -17,7 +17,7 @@ class ReactPageRendererTest {
     private ReactPageRenderer renderer(String manifest, String layout) {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         FrontendAssets assets = new ManifestFrontendAssets(new ViteManifestSource(loader, manifest), "/mustache-react/");
-        return new ReactPageRenderer(loader, Mustache.compiler(), assets, context(), layout, true);
+        return new ReactPageRenderer(loader, Mustache.compiler(), assets, context(), ServerSideRendering.off(), layout, true);
     }
 
     /** Server context with a fixed entry, serialized by a minimal Map writer. */
@@ -67,7 +67,7 @@ class ReactPageRendererTest {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         ReactPageRenderer renderer = new ReactPageRenderer(loader, Mustache.compiler(),
                 new DevServerFrontendAssets(new run.iknow.mustachereact.core.ViteDevServer("http://localhost:5173/mustache-react/")),
-                context(), "classpath:/does-not-exist.mustache", true);
+                context(), ServerSideRendering.off(), "classpath:/does-not-exist.mustache", true);
 
         String html = renderer.render("orders/OrderList", "", "{}", Locale.ENGLISH);
 
@@ -84,6 +84,21 @@ class ReactPageRendererTest {
                 java.util.Collections.<String, Object>singletonMap("errors", "x"), Locale.ENGLISH);
 
         assertThat(html).contains("id=\"mr-context\">{\"locale\":\"ko-KR\",\"errors\":\"x\"}</script>");
+    }
+
+    @Test
+    void embedsServerRenderedHtmlForHydration() {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        FrontendAssets assets = new ManifestFrontendAssets(new ViteManifestSource(loader, MANIFEST), "/mustache-react/");
+        ServerSideRendering ssr = new ServerSideRendering(ServerSideRendering.Mode.AUTO,
+                (component, props, context) -> "<h1>" + component + "</h1><!--" + context + "-->");
+        ReactPageRenderer renderer = new ReactPageRenderer(loader, Mustache.compiler(), assets, context(), ssr,
+                ReactPageRenderer.DEFAULT_LAYOUT, true);
+
+        String html = renderer.render("orders/OrderList", "", "{}", Locale.ENGLISH);
+
+        assertThat(html).contains("<div data-mr-island=\"pages/orders/OrderList\" data-mr-id=\"mr-page\" data-mr-ssr=\"true\">"
+                + "<h1>pages/orders/OrderList</h1><!--{\"locale\":\"ko-KR\"}--></div>");
     }
 
     @Test

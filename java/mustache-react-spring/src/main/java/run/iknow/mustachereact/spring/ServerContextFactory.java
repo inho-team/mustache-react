@@ -53,10 +53,26 @@ public class ServerContextFactory {
 
     /**
      * @param extra entries added after the contributors', may be {@code null}
+     * @return the context of the current request as JSON
+     */
+    public String json(Map<String, Object> extra) {
+        return serializer.serialize(create(extra));
+    }
+
+    /**
+     * @param extra entries added after the contributors', may be {@code null}
      * @return the {@code <script>} element holding the context
      */
     public String scriptTag(Map<String, Object> extra) {
+        return scriptTagFor(json(extra));
+    }
+
+    /**
+     * @param json the context as JSON, from {@link #json(Map)}
+     * @return the {@code <script>} element holding the context
+     */
+    public static String scriptTagFor(String json) {
         return "<script type=\"application/json\" id=\"" + Protocol.CONTEXT_SCRIPT_ID + "\">"
-                + Html.scriptSafeJson(serializer.serialize(create(extra))) + "</script>\n";
+                + Html.scriptSafeJson(json) + "</script>\n";
     }
 }

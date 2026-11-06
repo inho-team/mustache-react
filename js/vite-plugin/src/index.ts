@@ -13,6 +13,19 @@ export const DEFAULT_OUT_DIR = '../../../build/mustache-react/static/mustache-re
 const ENTRY_ID = 'virtual:mustache-react/entry';
 const RESOLVED_ENTRY_ID = '\0' + ENTRY_ID;
 
+/** Entry of the server-side rendering bundle, built with `build.ssr` and loaded by the dev server. */
+export const SSR_ENTRY_ID = 'virtual:mustache-react/ssr-entry';
+const RESOLVED_SSR_ENTRY_ID = '\0' + SSR_ENTRY_ID;
+
+/** File name of the SSR bundle. Spring looks for `META-INF/mustache-react/ssr/server.mjs` on the class path. */
+export const SSR_BUNDLE = 'server.mjs';
+
+/** Output directory of the SSR bundle, relative to the frontend directory, for a Gradle project. */
+export const DEFAULT_SSR_OUT_DIR = '../../../build/mustache-react/ssr';
+
+/** Render endpoint on the SSR server and the dev server. Same path as in `@mustache-react/server`. */
+export const RENDER_PATH = '/__mustache-react/render';
+
 /** Default port of the dev server. Must match `mustache-react.dev-server.url`. */
 export const DEFAULT_DEV_PORT = 5173;
 
@@ -32,6 +45,10 @@ export interface MustacheReactOptions {
   base?: string;
   /** Dev server port. Must match `mustache-react.dev-server.url`. Default: `MUSTACHE_REACT_DEV_PORT`, else 5173. */
   port?: number;
+  /**
+   * Where `build --ssr` writes the SSR bundle. Default: `MUSTACHE_REACT_SSR_OUT_DIR`, else {@link DEFAULT_SSR_OUT_DIR}.
+   */
+  ssrOutDir?: string;
   /**
    * Mustache templates to watch in development; the browser reloads when one changes.
    * Default: `MUSTACHE_REACT_TEMPLATES_DIR`, else `../resources/templates` (that is, `src/main/resources/templates`).
@@ -57,6 +74,27 @@ export function entrySource(): string {
 }
 
 /**
+ * Source of the generated SSR entry: the same components and wrapper as the client entry, imported eagerly, and an
+ * HTTP server started when the bundle is run directly (`node server.mjs --port 5174`).
+ */
+export function ssrEntrySource(): string {
+  return [
+    `import { pathToFileURL } from 'node:url';`,
+    `import { createRenderer, portFromArgs, startServer } from '@mustache-react/server';`,
+    `const app = import.meta.glob('/app.{tsx,jsx,ts,js}', { eager: true });`,
+    `export const render = createRenderer({`,
+    `  components: import.meta.glob(['/pages/**/*.{tsx,jsx}', '/islands/**/*.{tsx,jsx}'], { eager: true }),`,
+    `  wrapper: Object.values(app)[0]?.default,`,
+    `});`,
+    `if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {`,
+    `  const port = portFromArgs(process.argv);`,
+    `  startServer(render, port).then(() => console.log('mustache-react SSR server listening on 127.0.0.1:' + port));`,
+    `}`,
+    ``,
+  ].join('\n');
+}
+
+/**
  * Vite plugin for mustache-react.
  *
  * Run Vite from the frontend directory (`src/main/frontend`). The plugin generates the client entry,
@@ -71,8 +109,29 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
   let templatesDir: string | undefined;
   return {
     name: 'mustache-react',
-    config(userConfig) {
+    config(userConfig, env) {
       const root = path.resolve(userConfig.root ?? process.cwd());
+      if (env?.isSsrBuild || userConfig.build?.ssr) {
+        // Vite 8 bundles with Rolldown, which renamed Rollup's inlineDynamicImports.
+        const rolldown = 'rolldownVersion' in ((this as { meta?: object } | undefined)?.meta ?? {});
+        const singleFile = rolldown ? { codeSplitting: false } : { inlineDynamicImports: true };
+        // One self-contained file: Spring runs it with plain `node`, without node_modules.
+        const ssrOutDir = path.resolve(root, options.ssrOutDir ?? process.env.MUSTACHE_REACT_SSR_OUT_DIR ?? DEFAULT_SSR_OUT_DIR);
+        return {
+          base: options.base ?? process.env.MUSTACHE_REACT_BASE ?? DEFAULT_BASE,
+          ssr: { noExternal: true, target: 'node' },
+          build: {
+            ssr: true,
+            outDir: ssrOutDir,
+            emptyOutDir: true,
+            manifest: false,
+            rollupOptions: {
+              input: SSR_ENTRY_ID,
+              output: { entryFileNames: SSR_BUNDLE, ...singleFile },
+            },
+          },
+        };
+      }
       const outDir = path.resolve(root, options.outDir ?? process.env.MUSTACHE_REACT_OUT_DIR ?? DEFAULT_OUT_DIR);
       const templates = options.templatesDir ?? process.env.MUSTACHE_REACT_TEMPLATES_DIR ?? DEFAULT_TEMPLATES_DIR;
       templatesDir = templates === false ? undefined : path.resolve(root, templates);
@@ -102,6 +161,35 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
       };
     },
     configureServer(server) {
+      // Server-side rendering in development: Spring posts here; the renderer is loaded anew for each request.
+      server.middlewares.use(RENDER_PATH, (req, res, next) => {
+        if (req.method !== 'POST') {
+          next();
+          return;
+        }
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', () => {
+          void (async () => {
+            let status = 200;
+            let json: unknown;
+            try {
+              const request = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
+              const module = (await server.ssrLoadModule(SSR_ENTRY_ID)) as { render: (r: unknown) => string };
+              json = { html: module.render(request) };
+            } catch (error) {
+              if (error instanceof Error) {
+                server.ssrFixStacktrace(error);
+              }
+              status = 500;
+              json = { error: error instanceof Error ? (error.stack ?? error.message) : String(error) };
+            }
+            res.statusCode = status;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify(json));
+          })();
+        });
+      });
       if (!templatesDir) {
         return;
       }
@@ -117,10 +205,16 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
       server.watcher.on('add', reload);
     },
     resolveId(id) {
-      return id === ENTRY_ID ? RESOLVED_ENTRY_ID : undefined;
+      if (id === ENTRY_ID) {
+        return RESOLVED_ENTRY_ID;
+      }
+      return id === SSR_ENTRY_ID ? RESOLVED_SSR_ENTRY_ID : undefined;
     },
     load(id) {
-      return id === RESOLVED_ENTRY_ID ? entrySource() : undefined;
+      if (id === RESOLVED_ENTRY_ID) {
+        return entrySource();
+      }
+      return id === RESOLVED_SSR_ENTRY_ID ? ssrEntrySource() : undefined;
     },
   };
 }

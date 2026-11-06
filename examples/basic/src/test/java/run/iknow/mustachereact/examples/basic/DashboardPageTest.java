@@ -12,7 +12,7 @@ import org.springframework.core.env.Environment;
 
 /** A Mustache view with React islands. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "mustache-react.manifest-location=classpath:/test-manifest.json")
+        properties = {"mustache-react.manifest-location=classpath:/test-manifest.json", "mustache-react.ssr=off"})
 class DashboardPageTest {
 
     @Autowired

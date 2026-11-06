@@ -46,6 +46,13 @@ public class BuildMojo extends AbstractMojo {
     @Parameter(defaultValue = "false", property = "mustacheReact.skipFrontend")
     private boolean skipFrontend;
 
+    /**
+     * Whether to build the server-side rendering bundle too, for {@code mustache-react.ssr=auto|always}. Needs
+     * {@code @mustache-react/server} in the frontend dependencies.
+     */
+    @Parameter(defaultValue = "false", property = "mustacheReact.ssr")
+    private boolean ssr;
+
     /** Whether to install the frontend dependencies before building. */
     @Parameter(defaultValue = "true", property = "mustacheReact.install")
     private boolean install;
@@ -94,7 +101,8 @@ public class BuildMojo extends AbstractMojo {
             }
             File staticDir = new File(new File(outputDirectory, "static"), publicPath.replaceAll("^/+|/+$", ""));
             deleteRecursively(outputDirectory);
-            build.build(staticDir.toPath(), publicPath);
+            build.build(staticDir.toPath(), publicPath,
+                    ssr ? new File(outputDirectory, FrontendBuild.SSR_RESOURCE_DIR).toPath() : null);
         } catch (IOException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         }

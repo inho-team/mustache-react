@@ -12,7 +12,7 @@ public class LoginController {
 
     @ReactPage(value = "auth/Login", title = "로그인")
     @GetMapping("/login")
-    public LoginPage login(@RequestParam(required = false) String error) {
+    public LoginPage login(@RequestParam(name = "error", required = false) String error) {
         return new LoginPage(error != null);
     }
 }

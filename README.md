@@ -43,8 +43,26 @@ TS 타입은 annotation processor가 Java DTO에서 만듭니다. Java 필드 �
 {{{mr.scripts}}}
 ```
 
-> **상태:** 개발 초기입니다. M4(`@ReactPage` 페이지, Mustache island, DTO → TS 타입 생성, Vite HMR 개발 모드, Gradle/Maven 플러그인)까지 동작합니다. 아직 Maven Central과 npm에 배포된 버전은 없습니다(M6 예정).
+> **상태:** 개발 초기입니다. M5(`@ReactPage` 페이지, Mustache island, DTO → TS 타입 생성, Vite HMR 개발 모드, Gradle/Maven 플러그인, 서버 컨텍스트와 폼, SSR)까지 동작합니다. 아직 Maven Central과 npm에 배포된 버전은 없습니다(M6 예정).
 > 설계와 로드맵은 [docs/PLAN.md](docs/PLAN.md)에 있습니다.
+
+폼은 Spring MVC 방식 그대로 처리합니다. `@Valid` 검증 에러는 필드 옆에 표시되고, `return "redirect:/orders"`로 페이지를 이동합니다. CSRF 토큰과 로그인 사용자는 `useServerContext()`로 받습니다.
+
+```java
+@ReactPage("orders/OrderForm")
+@PostMapping("/orders/new")
+public Object create(@Valid @RequestBody OrderForm form, BindingResult result) {
+    if (result.hasErrors()) return new OrderFormPage(form);
+    orders.add(form);
+    return "redirect:/orders";
+}
+```
+
+```tsx
+const form = useSpringForm<OrderForm>({ initialValues: props.form, action: '/orders/new' });
+```
+
+`mustache-react.ssr=auto`로 켜면 페이지와 island를 서버에서 렌더링한 HTML로 내려보내고 브라우저가 hydrate합니다. SSR은 jar 안의 번들을 Spring이 Node 사이드카로 실행해서 처리하고, 실패하면 브라우저 렌더링으로 대신합니다.
 
 ## 시작하기
 
@@ -158,6 +176,9 @@ pnpm install
 
 - <http://localhost:8080/orders>: `@ReactPage` 페이지. 같은 URL을 curl로 호출하면 JSON이 나옵니다.
 - <http://localhost:8080/dashboard>: Mustache 화면에 React island(recharts 차트, 상태 배지)를 넣은 예
+- <http://localhost:8080/orders/new>: 로그인(kim / password) 후 주문 등록 폼. `@Valid`와 같은 검증 에러, `redirect:`
+
+예제는 SSR(`mustache-react.ssr=auto`)을 켠 상태입니다. 페이지 소스를 보면 서버에서 렌더링한 HTML이 들어 있습니다.
 
 ```bash
 curl http://localhost:8080/orders

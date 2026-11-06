@@ -19,6 +19,9 @@ public final class FrontendBuild {
     /** The CLI, relative to the frontend directory. */
     static final String CLI = "node_modules/@mustache-react/vite-plugin/dist/bin.js";
 
+    /** Where the SSR bundle goes in the resources: {@code classpath:/META-INF/mustache-react/ssr/server.mjs}. */
+    public static final String SSR_RESOURCE_DIR = "META-INF/mustache-react/ssr";
+
     private final Path frontendDir;
     private final NodeRuntime node;
     private final BuildLog log;
@@ -104,15 +107,35 @@ public final class FrontendBuild {
      * @throws IOException if the CLI is missing or the build fails
      */
     public void build(Path outDir, String base) throws IOException {
+        build(outDir, base, null);
+    }
+
+    /**
+     * Builds the frontend and, when {@code ssrOutDir} is given, the server-side rendering bundle
+     * ({@code server.mjs}).
+     *
+     * @param outDir directory Spring serves at the public path
+     * @param base public path, e.g. {@code /mustache-react/}
+     * @param ssrOutDir where to write {@code server.mjs}, e.g. {@code <resources>/META-INF/mustache-react/ssr};
+     *        {@code null} to skip it
+     * @throws IOException if the CLI is missing or the build fails
+     */
+    public void build(Path outDir, String base, Path ssrOutDir) throws IOException {
         requirePackageJson();
         Path cli = frontendDir.resolve(CLI);
         if (!Files.isRegularFile(cli)) {
             throw new IOException("mustache-react: " + cli + " not found. Add @mustache-react/vite-plugin to the "
                     + "devDependencies of " + frontendDir.resolve("package.json") + " and install the dependencies.");
         }
-        log.info("mustache-react: building the frontend into " + outDir);
-        ProcessRunner.run(node.node(cli.toString(), "build", "--out-dir", outDir.toString(), "--base", base),
-                frontendDir, environment(), log);
+        log.info("mustache-react: building the frontend into " + outDir
+                + (ssrOutDir == null ? "" : ", and the SSR bundle into " + ssrOutDir));
+        List<String> command = node.node(cli.toString(), "build", "--out-dir", outDir.toString(), "--base", base);
+        if (ssrOutDir != null) {
+            command.add("--ssr");
+            command.add("--ssr-out-dir");
+            command.add(ssrOutDir.toString());
+        }
+        ProcessRunner.run(command, frontendDir, environment(), log);
     }
 
     private void requirePackageJson() throws IOException {

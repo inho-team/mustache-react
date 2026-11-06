@@ -12,7 +12,7 @@ import org.springframework.core.env.Environment;
  * Uses a fixed test manifest, so it runs without building the frontend.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "mustache-react.manifest-location=classpath:/test-manifest.json")
+        properties = {"mustache-react.manifest-location=classpath:/test-manifest.json", "mustache-react.ssr=off"})
 class OrderPageTest {
 
     private static final String BROWSER_ACCEPT =

@@ -25,6 +25,7 @@ final class IslandRequestState {
     private final String idPrefix;
     private int next;
     private final Set<String> components = new LinkedHashSet<>();
+    private String contextJson;
 
     private IslandRequestState(String idPrefix) {
         this.idPrefix = idPrefix;
@@ -47,6 +48,14 @@ final class IslandRequestState {
     synchronized String register(String component) {
         components.add(component);
         return idPrefix + next++;
+    }
+
+    /** The server context JSON of the request, computed once for all its islands. */
+    synchronized String contextJson(java.util.function.Supplier<String> compute) {
+        if (contextJson == null) {
+            contextJson = compute.get();
+        }
+        return contextJson;
     }
 
     synchronized List<String> components() {

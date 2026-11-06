@@ -50,6 +50,7 @@ public class MustacheReactPlugin implements Plugin<Project> {
         extension.getFrontendBuild().convention(project.getProviders().gradleProperty(SKIP_FRONTEND_PROPERTY)
                 .map(value -> "false".equalsIgnoreCase(value)).orElse(true));
         extension.getInstall().convention(true);
+        extension.getSsr().convention(false);
         extension.getPackageManager().convention("auto");
         extension.getNodeDownload().convention(true);
         extension.getNodeVersion().convention(NodeInstaller.DEFAULT_VERSION);
@@ -85,6 +86,7 @@ public class MustacheReactPlugin implements Plugin<Project> {
                     task.getSources().from(frontendDir.map(dir -> project.fileTree(dir, tree ->
                             tree.exclude("node_modules/**", "dist/**", ".vite/**"))));
                     task.getPublicPath().set(extension.getPublicPath());
+                    task.getSsr().set(extension.getSsr());
                     task.getOutputDir().set(project.getLayout().getBuildDirectory().dir("mustache-react/resources"));
                     task.dependsOn(install);
                     task.onlyIf(t -> extension.getFrontendBuild().get());

@@ -61,6 +61,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.16.0</version>
         <configuration>
+          <!-- Parameter names for Spring MVC (spring-boot-starter-parent sets this too). -->
+          <parameters>true</parameters>
           <annotationProcessorPaths>
             <path>
               <groupId>run.iknow</groupId>
@@ -87,6 +89,8 @@
           </execution>
         </executions>
         <configuration>
+          <!-- Also build the server-side rendering bundle (mustache-react.ssr=auto). -->
+          <ssr>true</ssr>
           <!-- Only inside the mustache-react repository: the frontend belongs to the pnpm workspace, installed at the
                root. A normal application leaves both at their defaults (download Node.js, install). -->
           <install>false</install>

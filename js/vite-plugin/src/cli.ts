@@ -5,11 +5,14 @@
  * project needs no `vite.config.ts`: without one, the defaults are React (`@vitejs/plugin-react`) plus this plugin.
  * With one, it is used as is (it should list `mustacheReact()`).
  *
+ * `build --ssr` also writes the server-side rendering bundle (`server.mjs`), for `mustache-react.ssr`.
+ *
  * Options, also readable from the environment (handy for build tools):
  *   --out-dir <dir>         MUSTACHE_REACT_OUT_DIR        where `build` writes the files Spring serves
  *   --base <path>           MUSTACHE_REACT_BASE           public URL path, default /mustache-react/
  *   --port <n>              MUSTACHE_REACT_DEV_PORT       dev server port, default 5173
  *   --templates-dir <dir>   MUSTACHE_REACT_TEMPLATES_DIR  Mustache templates watched by `dev`
+ *   --ssr-out-dir <dir>     MUSTACHE_REACT_SSR_OUT_DIR    where `build --ssr` writes server.mjs
  * Runs in the current directory (the frontend directory).
  */
 import { existsSync } from 'node:fs';
@@ -26,20 +29,28 @@ const OPTIONS: Record<string, string> = {
   '--base': 'MUSTACHE_REACT_BASE',
   '--port': 'MUSTACHE_REACT_DEV_PORT',
   '--templates-dir': 'MUSTACHE_REACT_TEMPLATES_DIR',
+  '--ssr-out-dir': 'MUSTACHE_REACT_SSR_OUT_DIR',
 };
 
 export interface CliArgs {
   command: 'build' | 'dev';
+  /** `build --ssr`: also build the SSR bundle. */
+  ssr: boolean;
 }
 
 /** Parses the arguments; options are copied to the environment variables the plugin reads. */
 export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): CliArgs {
   const [command, ...rest] = argv;
   if (command !== 'build' && command !== 'dev') {
-    throw new Error(`Usage: mustache-react-vite build|dev [${Object.keys(OPTIONS).join(' <value>] [')} <value>]`);
+    throw new Error(`Usage: mustache-react-vite build|dev [--ssr] [${Object.keys(OPTIONS).join(' <value>] [')} <value>]`);
   }
+  let ssr = false;
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]!;
+    if (arg === '--ssr') {
+      ssr = true;
+      continue;
+    }
     const [name, inline] = arg.includes('=') ? [arg.slice(0, arg.indexOf('=')), arg.slice(arg.indexOf('=') + 1)] : [arg, undefined];
     const variable = OPTIONS[name];
     if (!variable) {
@@ -51,7 +62,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     }
     env[variable] = value;
   }
-  return { command };
+  return { command, ssr };
 }
 
 /** The project's own Vite config file, if any. */
@@ -81,13 +92,17 @@ async function viteConfig(root: string): Promise<InlineConfig> {
 }
 
 export async function run(argv: string[]): Promise<void> {
-  const { command } = parseArgs(argv);
+  const { command, ssr } = parseArgs(argv);
   const root = process.cwd();
   const vite = await import('vite');
   const config = await viteConfig(root);
 
   if (command === 'build') {
     await vite.build(config);
+    if (ssr) {
+      // The plugin points the SSR build at its generated entry.
+      await vite.build({ ...config, build: { ssr: true } });
+    }
     return;
   }
   const server = await vite.createServer(config);

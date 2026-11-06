@@ -41,6 +41,7 @@ public class ReactPageRenderer {
     private final Mustache.Compiler compiler;
     private final FrontendAssets assets;
     private final ServerContextFactory serverContext;
+    private final ServerSideRendering ssr;
     private final String layoutLocation;
     private final boolean contentNegotiation;
 
@@ -51,15 +52,18 @@ public class ReactPageRenderer {
      * @param compiler the application's Mustache compiler, so that layouts can use its partials and settings
      * @param assets produces the asset tags (built files or Vite dev server)
      * @param serverContext writes the server context script
+     * @param ssr server-side rendering, or {@link ServerSideRendering#off()}
      * @param layoutLocation location of the application's layout; the built-in layout is used if it does not exist
      * @param contentNegotiation whether requests for JSON get the data instead of the page
      */
     public ReactPageRenderer(ResourceLoader resourceLoader, Mustache.Compiler compiler, FrontendAssets assets,
-            ServerContextFactory serverContext, String layoutLocation, boolean contentNegotiation) {
+            ServerContextFactory serverContext, ServerSideRendering ssr, String layoutLocation,
+            boolean contentNegotiation) {
         this.resourceLoader = resourceLoader;
         this.compiler = compiler;
         this.assets = assets;
         this.serverContext = serverContext;
+        this.ssr = ssr;
         this.layoutLocation = layoutLocation;
         this.contentNegotiation = contentNegotiation;
     }
@@ -96,10 +100,12 @@ public class ReactPageRenderer {
      */
     public String render(String page, String title, String propsJson, Map<String, Object> extraContext, Locale locale) {
         String component = PAGES_DIRECTORY + IslandMarkup.requireValidName(page);
+        String contextJson = serverContext.json(extraContext);
+        String ssrHtml = ssr.render(component, propsJson, () -> contextJson);
         Map<String, Object> mr = new HashMap<>();
         mr.put("head", assets.pageHead(component));
-        mr.put("page", IslandMarkup.render(component, "mr-page", propsJson, null));
-        mr.put("scripts", serverContext.scriptTag(extraContext) + assets.pageScripts(component));
+        mr.put("page", IslandMarkup.render(component, "mr-page", propsJson, ssrHtml));
+        mr.put("scripts", ServerContextFactory.scriptTagFor(contextJson) + assets.pageScripts(component));
 
         Map<String, Object> context = new HashMap<>();
         context.put("title", title == null || title.isEmpty() ? page : title);

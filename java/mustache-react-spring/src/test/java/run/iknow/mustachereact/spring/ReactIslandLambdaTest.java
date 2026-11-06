@@ -180,6 +180,26 @@ class ReactIslandLambdaTest {
     }
 
     @Test
+    void rendersIslandsOnTheServerWithTheSameContextAsThePage() {
+        java.util.concurrent.atomic.AtomicInteger contexts = new java.util.concurrent.atomic.AtomicInteger();
+        ServerContextFactory context = new ServerContextFactory(
+                java.util.Collections.<ServerContextContributor>singletonList(c -> c.put("n", contexts.incrementAndGet())),
+                serializer);
+        ServerSideRendering ssr = new ServerSideRendering(ServerSideRendering.Mode.AUTO,
+                (component, props, json) -> "<b>" + component + json + "</b>");
+        model.put("react", new ReactIslandLambda(serializer, ssr, context));
+        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/"), context));
+
+        String html = render("{{#react}}StatusBadge{{/react}}{{#react}}OrderChart{{/react}}{{{mr.scripts}}}");
+
+        assertThat(html)
+                .contains("data-mr-ssr=\"true\"><b>islands/StatusBadge{\"n\":1}</b></div>")
+                .contains("data-mr-ssr=\"true\"><b>islands/OrderChart{\"n\":1}</b></div>")
+                .contains("id=\"mr-context\">{\"n\":1}</script>");
+        assertThat(contexts).hasValue(1);
+    }
+
+    @Test
     void idsAreUniqueWithinARequestAndRestartForTheNext() {
         assertThat(render("{{#react}}StatusBadge{{/react}}{{#react}}StatusBadge{{/react}}"))
                 .contains("data-mr-id=\"mr-0\"").contains("data-mr-id=\"mr-1\"");

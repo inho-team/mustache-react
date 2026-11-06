@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: v0.6 · M4 완료 · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.7 · M5 완료 · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -154,35 +154,73 @@ public String dashboard(Model model) {
   - 이름은 `mustache-react.template.react-name`, `mustache-react.template.helpers-name`으로 바꿀 수 있다.
   - `mustache-react.template.model-attributes=false`로 끌 수 있다.
 - island를 감싸는 요소는 `<div>`다. `<p>` 같은 인라인 문맥 안에는 넣지 않는다.
-- SSR 여부, 마운트 시점 같은 옵션은 템플릿에 쓰지 않고 `application.yml`이나 Java 쪽에서 설정한다(M5).
+- SSR 여부는 템플릿에 쓰지 않고 `mustache-react.ssr`로 설정한다. island도 페이지와 같은 정책을 따른다.
 
 ### 5-3. 폼과 검증
 
 ```java
-@ReactPage("orders/OrderForm")
-@PostMapping("/orders")
-public Object create(@Valid @RequestBody OrderForm form, BindingResult result) { ... }
+@ReactPage(value = "orders/OrderForm", title = "주문 등록")
+@GetMapping("/orders/new")
+public OrderFormPage newOrder() { return new OrderFormPage(new OrderForm()); }
+
+@ReactPage(value = "orders/OrderForm", title = "주문 등록")
+@PostMapping("/orders/new")
+public Object create(@Valid @RequestBody OrderForm form, BindingResult result) {
+    if (result.hasErrors()) return new OrderFormPage(form);   // 같은 화면을 에러와 함께
+    orders.add(form);
+    return "redirect:/orders";                                // Spring 방식 그대로
+}
 ```
 ```tsx
-const { register, errors, submit } = useSpringForm<OrderForm>();   // CSRF, 검증 에러 자동 연동
+const form = useSpringForm<OrderForm>({ initialValues: props.form, action: '/orders/new' });
+<form onSubmit={form.submit}>
+  <input {...form.field('customer')} />
+  {form.errors.customer?.map((e) => <span key={e}>{e}</span>)}
+</form>
 ```
 
-- `BindingResult`의 필드 에러는 그 필드에 맞춰 폼에 표시된다.
-- 처리 후 `redirect:`를 반환하면 Spring 방식 그대로 페이지가 이동한다.
+**`useSpringForm`**
+
+값을 JSON으로 제출하고 CSRF 헤더를 붙인다.
+
+| 상황 | JSON 요청 (`useSpringForm`) | HTML 요청 (일반 폼 전송) |
+|---|---|---|
+| `"redirect:/path"` 반환 | `200 {"redirect": "/path"}` → 브라우저가 이동 | `303 See Other` |
+| `BindingResult`에 에러 | `400 {"errors": {"fields": {...}, "global": [...]}}` → 필드 옆에 표시 | 페이지를 다시 렌더링하고, 에러는 서버 컨텍스트 `errors`로 전달 (`useSpringForm`이 처음부터 표시) |
+
+**동작 세부**
+
+- `redirect:` 경로가 `/`로 시작하면 context path를 앞에 붙인다(Spring의 view name 규칙과 같음).
+- 에러 메시지는 `MessageSource`로 요청 locale에 맞게 바꾼다(`messages.properties`의 코드).
+- 타입 생성기는 폼 핸들러의 `Object` 반환보다 같은 페이지 GET 핸들러의 구체 타입을 우선한다.
+- 예제는 Boot 2.7(`javax.validation`)과 3+(`jakarta.validation`)를 하나의 소스로 지원하려고 `@Validated`와 Spring `Validator`를 쓴다. 일반 애플리케이션은 `@Valid`와 `@NotBlank` 등을 그대로 쓰면 되고, 결과는 같은 `BindingResult`로 들어온다.
 
 ### 5-4. 서버 컨텍스트
 
 ```tsx
 const { user, csrf, locale, messages } = useServerContext();
+springFetch('/orders', { method: 'POST', body })   // Accept: application/json + CSRF 헤더
 ```
 
-로그인 사용자 정보 노출 범위와 메시지 키 노출 범위는 Java 설정으로 정한다. 기본값은 최소한만 노출한다.
+모든 페이지에 `<script type="application/json" id="mr-context">`로 들어간다. `@ReactPage` 페이지와 Mustache 화면의 `{{{mr.scripts}}}` 모두 해당된다.
+
+| 키 | 내용 | 설정 |
+|---|---|---|
+| `locale` | 요청 locale (`ko-KR`) | 항상 |
+| `csrf` | `{headerName, parameterName, token}` | Spring Security가 있을 때. `mustache-react.context.csrf=false`로 끔 |
+| `user` | `{name, authorities}`, 비로그인은 `null` | Spring Security가 있을 때. `mustache-react.context.user=false`로 끔 |
+| `messages` | 지정한 키의 메시지 | `mustache-react.context.messages=app.name,...`. 지정한 키만 노출 |
+| `errors` | 직전 폼 제출의 검증 에러 | 일반 폼 전송으로 페이지를 다시 렌더링할 때 |
+
+- 애플리케이션은 `ServerContextContributor` 빈으로 항목을 추가한다(테넌트, 기능 플래그 등).
+- 페이지에 그대로 쓰이므로 비밀 값은 넣지 않는다.
+- Spring Security 5.7부터 7까지 공통인 API만 쓴다. Security 6 이상의 지연 CSRF 토큰과 BREACH 마스킹 토큰도 그대로 동작한다.
 
 ### 5-5. 설정
 
 ```yaml
 mustache-react:
-  ssr: off                     # off | auto | always (M5)
+  ssr: off                     # off | auto | always
   frontend-dir: src/main/frontend
   content-negotiation: true
   manifest-location: classpath:/static/mustache-react/.vite/manifest.json
@@ -195,6 +233,14 @@ mustache-react:
     node: ""                   # 기본: .mustache-react/node의 최신 버전, 없으면 PATH의 node
     node-install-dir: .mustache-react/node
     startup-timeout: 30s
+  ssr-server:
+    bundle-location: classpath:/META-INF/mustache-react/ssr/server.mjs
+    timeout: 3s
+    startup-timeout: 15s
+  context:
+    csrf: true
+    user: true
+    messages: []               # 노출할 메시지 키
   template:
     react-name: react
     helpers-name: mr
@@ -252,15 +298,38 @@ src/main/frontend/
 - CI에서 (Boot 2.7, Java 8), (Boot 3.5, Java 17), (Boot 4.x, Java 21) 조합으로 같은 테스트를 실행한다.
 - 단일 artifact로 해결이 안 되는 부분이 생기면 그 부분만 `-boot2`, `-boot3` 모듈로 분리한다.
 
-### 7-2. SSR 엔진을 SPI로 분리
+### 7-2. SSR (서버 렌더링)
 
-Java 8의 Nashorn은 최신 React SSR에 쓸 수 없고, GraalJS는 Java 17 이상이 필요하다. 그래서 `SsrEngine` 인터페이스를 두고 구현체를 고른다.
+```properties
+mustache-react.ssr=auto          # off(기본) | auto | always
+```
+```kotlin
+mustacheReact { ssr = true }     // Maven: <ssr>true</ssr>. 프론트 의존성에 @mustache-react/server 필요
+```
 
-| 엔진 | 모듈 | Java | 특징 |
-|---|---|---|---|
-| Node 사이드카 | `mustache-react-ssr-node` | 8+ | HTTP로 Node 렌더 서버 호출. 개발 모드에서는 Spring이 프로세스를 관리 |
-| GraalJS | `mustache-react-ssr-graaljs` | 17+ | JVM 안에서 렌더링 |
-| (없음) | — | — | CSR만 사용 (기본값) |
+**모드**
+
+| 모드 | 동작 |
+|---|---|
+| `off` | 브라우저에서만 렌더링 |
+| `auto` | 서버에서 렌더링하고, 실패하거나 시간이 초과되면 CSR로 대신 그린다. 로그는 상태가 바뀔 때 한 번만 남긴다 |
+| `always` | 번들이 없으면 시작 단계에서 실패하고, 렌더링에 실패하면 요청도 실패한다 |
+
+**구조**
+
+- `SsrEngine` SPI(core)를 두고, 기본 구현은 `HttpSsrEngine`이다. `@mustache-react/server`의 렌더 엔드포인트(`POST /__mustache-react/render {component, props, context}` → `{html}`)를 호출한다.
+- **운영:** 빌드 플러그인이 `ssr = true`일 때 SSR 번들을 jar의 `META-INF/mustache-react/ssr/server.mjs`에 넣는다.
+  - 번들은 React와 컴포넌트를 모두 포함한 파일 하나라서, 서버에는 `node`만 있으면 된다(`node_modules` 불필요).
+  - Spring(`NodeSsrServer`)이 이 번들을 임시 디렉터리로 꺼내 `127.0.0.1`의 빈 포트에서 실행하고, 앱이 종료되면 함께 종료한다.
+  - Node는 `mustache-react.dev-server.node`/`node-install-dir` 설정과 같은 방식으로 찾는다.
+- **개발:** Vite dev server가 같은 엔드포인트를 제공한다(`ssrLoadModule`). 빌드 없이 현재 소스로 SSR이 되고 HMR도 그대로다.
+- **서버 렌더 트리:** 브라우저와 같은 구조(`app.tsx` 래퍼 > 컴포넌트)로 그리고, 서버 컨텍스트는 `ServerContextProvider`로 넘긴다. 페이지의 `mr-context`와 SSR에 쓴 컨텍스트는 요청마다 한 번만 계산해서 같은 값을 쓴다. 그래서 hydrate할 때 결과가 어긋나지 않는다.
+- **적용 범위:** `@ReactPage` 페이지와 Mustache island 모두 SSR 대상이다. island 하나가 실패하면 그 island만 CSR로 대신 그린다.
+- **설정:** `mustache-react.ssr-server.timeout`(3s)과 `startup-timeout`(15s)으로 시간을 조절한다.
+
+**GraalJS 엔진**
+
+후속 과제(M7)다. Java 17 이상에서 JVM 안에서 렌더링하며, 같은 `SsrEngine` SPI의 다른 구현으로 추가한다.
 
 ### 7-3. Java DTO에서 TS 타입 생성
 
@@ -392,8 +461,7 @@ mustache-react/
 │   ├── mustache-react-spring-boot-autoconfigure
 │   ├── mustache-react-spring-boot-starter
 │   ├── mustache-react-processor               # DTO → TS 타입 (annotation processor)
-│   ├── mustache-react-ssr-node                # (M5)
-│   └── mustache-react-ssr-graaljs             # (M7)
+│   └── mustache-react-ssr-graaljs             # (M7) Node 사이드카(spring 모듈의 NodeSsrServer) 대신 JVM 안에서 렌더링
 ├── build-plugins/                             # 별도 Gradle 빌드 (메인 빌드가 includeBuild)
 │   ├── mustache-react-build-tools             # Node 설치, 패키지 매니저, 프론트 빌드 실행 (공통)
 │   ├── mustache-react-gradle-plugin           # id("run.iknow.mustache-react")
@@ -416,7 +484,7 @@ mustache-react/
 | ✅ **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
 | ✅ **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
 | ✅ **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
-| **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |
+| ✅ **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |
 | **M6. 첫 릴리스** | Maven Central, npm 배포 자동화, 문서 사이트 | `0.1.0` 릴리스 |
 | **M7. 확장** | GraalJS SSR, SPA 방식 페이지 이동, WebFlux 검토 | — |
 

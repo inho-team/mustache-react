@@ -51,6 +51,9 @@ public class MustacheReactProperties {
     /** What the server context ({@code useServerContext()}) exposes. */
     private final Context context = new Context();
 
+    /** The Node.js server that renders pages when {@code mustache-react.ssr} is {@code auto} or {@code always}. */
+    private final SsrServer ssrServer = new SsrServer();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -117,6 +120,50 @@ public class MustacheReactProperties {
 
     public Context getContext() {
         return context;
+    }
+
+    public SsrServer getSsrServer() {
+        return ssrServer;
+    }
+
+    /**
+     * Settings under {@code mustache-react.ssr-server.*}. The Node.js executable is the one of
+     * {@code mustache-react.dev-server.node} / {@code node-install-dir}.
+     */
+    public static class SsrServer {
+
+        /** The SSR bundle built with {@code ssr = true} in the Gradle or Maven plugin. */
+        private String bundleLocation = "classpath:/META-INF/mustache-react/ssr/server.mjs";
+
+        /** How long one render may take before the page falls back to rendering in the browser. */
+        private Duration timeout = Duration.ofSeconds(3);
+
+        /** How long to wait for the SSR server to start. */
+        private Duration startupTimeout = Duration.ofSeconds(15);
+
+        public String getBundleLocation() {
+            return bundleLocation;
+        }
+
+        public void setBundleLocation(String bundleLocation) {
+            this.bundleLocation = bundleLocation;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public Duration getStartupTimeout() {
+            return startupTimeout;
+        }
+
+        public void setStartupTimeout(Duration startupTimeout) {
+            this.startupTimeout = startupTimeout;
+        }
     }
 
     /** Settings under {@code mustache-react.context.*}. */
@@ -273,9 +320,9 @@ public class MustacheReactProperties {
     public enum SsrMode {
         /** Render in the browser only. */
         OFF,
-        /** Render on the server when an SSR engine is available, otherwise in the browser. */
+        /** Render on the server when it works, otherwise in the browser (failures are logged). */
         AUTO,
-        /** Always render on the server. Fails at startup if no SSR engine is available. */
+        /** Always render on the server. Fails at startup without the SSR bundle, and fails requests that cannot be rendered. */
         ALWAYS
     }
 }

@@ -23,6 +23,11 @@ try {
     }
   });
 
+  // Server-side rendering (mustache-react.ssr=auto): the HTML already holds the page, which React then hydrates.
+  const served = await (await fetch(`${baseUrl}/orders`, { headers: { Accept: 'text/html' } })).text();
+  assert.match(served, /data-mr-ssr="true"><main class="page">/);
+  assert.match(served, /<h1>주문 목록<\/h1>/);
+
   await page.goto(`${baseUrl}/orders`);
   await page.getByRole('heading', { name: '주문 목록' }).waitFor();
 
@@ -38,7 +43,9 @@ try {
 
   assert.deepEqual(errors, []);
 
-  // Mustache page with React islands.
+  // Mustache page with React islands, also rendered on the server.
+  const dashboard = await (await fetch(`${baseUrl}/dashboard`, { headers: { Accept: 'text/html' } })).text();
+  assert.match(dashboard, /data-mr-island="islands\/StatusBadge" data-mr-id="mr-1" data-mr-ssr="true"><button/);
   await page.goto(`${baseUrl}/dashboard`);
   await page.getByRole('heading', { name: '대시보드' }).waitFor();
   await page.locator('[data-testid="order-chart"] .recharts-bar-rectangle').first().waitFor();

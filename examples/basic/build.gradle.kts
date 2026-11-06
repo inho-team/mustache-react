@@ -33,10 +33,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
-// An application outside this repository needs no mustacheReact block. Inside it, the example's frontend belongs to
+// ssr builds the server-side rendering bundle (mustache-react.ssr=auto in application.properties).
+// An application outside this repository needs nothing else in this block. Inside it, the example's frontend belongs to
 // the repository's pnpm workspace: dependencies are installed once at the root and the @mustache-react/* packages
 // come from js/, not from npm.
 mustacheReact {
+    ssr.set(true)
     install.set(false)
     nodeDownload.set(false)
     processorDependency = project(":mustache-react-processor")
