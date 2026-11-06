@@ -43,7 +43,9 @@ TS 타입은 annotation processor가 Java DTO에서 만듭니다. Java 필드 �
 {{{mr.scripts}}}
 ```
 
-> **상태:** 개발 초기입니다. M5(`@ReactPage` 페이지, Mustache island, DTO → TS 타입 생성, Vite HMR 개발 모드, Gradle/Maven 플러그인, 서버 컨텍스트와 폼, SSR)까지 동작합니다. 아직 Maven Central과 npm에 배포된 버전은 없습니다(M6 예정).
+> **상태:** 0.1.0 릴리스 준비가 끝난 상태입니다. 기능(`@ReactPage`, Mustache island, 폼과 서버 컨텍스트, SSR, DTO → TS 타입, HMR 개발 모드, Gradle/Maven 플러그인)과 배포 자동화가 갖춰졌고, 첫 배포는 저장소 관리자가 배포 계정을 설정한 뒤 진행합니다([RELEASING.md](RELEASING.md)).
+>
+> 문서: <https://inho-team.github.io/mustache-react/> · 설계와 로드맵: [docs/PLAN.md](docs/PLAN.md) · 변경 내역: [CHANGELOG.md](CHANGELOG.md)
 > 설계와 로드맵은 [docs/PLAN.md](docs/PLAN.md)에 있습니다.
 
 폼은 Spring MVC 방식 그대로 처리합니다. `@Valid` 검증 에러는 필드 옆에 표시되고, `return "redirect:/orders"`로 페이지를 이동합니다. CSRF 토큰과 로그인 사용자는 `useServerContext()`로 받습니다.
@@ -66,7 +68,7 @@ const form = useSpringForm<OrderForm>({ initialValues: props.form, action: '/ord
 
 ## 시작하기
 
-> 배포 전이라 아래 좌표는 아직 받을 수 없습니다. 지금은 저장소의 `examples/basic`으로 확인할 수 있습니다.
+> 첫 배포 전에는 아래 좌표를 받을 수 없습니다. 지금은 `examples/basic`, 또는 배포본 형태로 빌드하는 `scripts/consumer-test.sh`로 확인할 수 있습니다. 자세한 내용은 [문서](https://inho-team.github.io/mustache-react/guide/getting-started)를 보세요.
 
 **1. 빌드 플러그인과 starter를 추가합니다.** npm을 직접 실행하거나 Vite를 설정할 필요가 없습니다.
 
@@ -139,6 +141,9 @@ TS 타입을 생성하려면 `maven-compiler-plugin`에 `mustache-react-processo
 | `js/` | npm에 배포하는 TypeScript 패키지 (`@mustache-react/*`) |
 | `build-plugins/` | Gradle 플러그인, Maven 플러그인, 둘이 함께 쓰는 빌드 도구 (별도 Gradle 빌드) |
 | `examples/basic` | 예제 앱. 같은 소스를 Gradle과 Maven으로 빌드하고 Spring Boot 버전을 바꿔 가며 실행 |
+| `examples/consumer` | 저장소 밖 프로젝트처럼 배포본만 쓰는 최소 앱 (`scripts/consumer-test.sh`) |
+| `website/` | 문서 사이트 (VitePress) |
+| `scripts/` | 버전 설정, Maven Central 업로드, 소비자 테스트 |
 | `build-logic/` | Gradle convention plugin |
 | `docs/` | 설계 문서 |
 

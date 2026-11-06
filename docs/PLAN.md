@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: v0.7 · M5 완료 · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.8 · M6 배포 자동화 완료 (첫 릴리스는 배포 계정 설정 후) · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -485,18 +485,33 @@ mustache-react/
 | ✅ **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
 | ✅ **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
 | ✅ **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |
-| **M6. 첫 릴리스** | Maven Central, npm 배포 자동화, 문서 사이트 | `0.1.0` 릴리스 |
+| ✅ **M6. 첫 릴리스 준비** | Maven Central, Gradle Plugin Portal, npm 배포 자동화, 문서 사이트, 소비자 테스트 | `v0.1.0` 태그를 push하면 배포 (계정과 secret 설정 필요, RELEASING.md) |
 | **M7. 확장** | GraalJS SSR, SPA 방식 페이지 이동, WebFlux 검토 | — |
 
 ## 10. 오픈소스 운영
 
 - **라이선스:** Apache-2.0
-- **Maven 좌표:** `run.iknow:mustache-react-*`. Central namespace 등록 시 `iknow.run` 도메인 DNS TXT 인증이 필요하다.
-- **npm 스코프:** `@mustache-react/*`. npm org 이름이 사용 가능한지 확인하고 생성해야 한다.
-- **버전 정책:** Java artifact와 npm 패키지를 같은 버전으로 함께 릴리스하고, 런타임에 manifest 형식 버전이 서로 맞는지 검증한다.
-- **CI/CD:** GitHub Actions. 태그를 push하면 Central과 npm에 배포한다(서명 키와 토큰은 Secrets로 관리).
+- **Maven 좌표:** `run.iknow:mustache-react-*`. Central namespace를 등록할 때 `iknow.run` 도메인 DNS TXT 인증이 필요하다.
+- **Gradle 플러그인:** `run.iknow.mustache-react`. Gradle Plugin Portal과 Maven Central 양쪽에 배포한다.
+- **npm 스코프:** `@mustache-react/*`. 배포 전에 npm organization을 만들어야 한다.
+- **버전:** Java artifact, Gradle 플러그인, npm 패키지를 같은 버전으로 함께 릴리스한다.
+  - `scripts/set-version.mjs`가 모든 버전을 한 번에 바꾼다.
+  - 버전이 서로 다르면 테스트가 실패한다.
+- **배포 (`.github/workflows/release.yml`):** `v<version>` 태그를 push하면 다음 순서로 진행한다.
+  1. 태그와 버전이 같은지 확인한다.
+  2. 전체 테스트와 소비자 테스트를 돌린다.
+  3. 서명된 Java artifact를 staging한 뒤 Central Portal API로 업로드한다(`scripts/publish-central.sh`).
+  4. Gradle Plugin Portal에 배포한다.
+  5. npm에 배포한다(provenance 포함).
+  6. CHANGELOG 내용으로 GitHub Release를 만든다.
+  - 수동 실행에서 dry run을 고르면 업로드 없이 모든 단계를 검증한다.
+- **소비자 테스트 (`scripts/consumer-test.sh`):** `examples/consumer`를 저장소 밖 프로젝트처럼 빌드한다. 배포본 형태(mavenLocal, npm tarball)의 artifact를 쓰고, Node 다운로드와 npm 레지스트리 설치까지 실제로 진행한다. CI에서 매번 실행한다.
+- **문서 사이트:** `website/`(VitePress)를 GitHub Pages에 배포한다(`.github/workflows/docs.yml`).
+- **필요한 설정:** 계정과 secret 목록은 [RELEASING.md](../RELEASING.md)에 있다.
 
 ## 11. 남은 결정 사항
+
+0. 첫 배포를 위한 계정 준비: Central namespace(`iknow.run` DNS 인증), GPG 키, Plugin Portal 키, npm organization과 토큰, GitHub Pages 활성화
 
 1. npm 스코프 이름 (`@mustache-react` 그대로 갈지, `@iknow` 같은 다른 이름을 쓸지)
 2. 기본 레이아웃에 CSS 리셋이나 기본 스타일을 넣을지

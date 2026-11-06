@@ -1,5 +1,6 @@
 packages:
   - "js/*"
+  - "website"
   - "examples/*/src/main/frontend"
   # A project outside the workspace on purpose: it installs the packed npm packages (scripts/consumer-test.sh).
   - "!examples/consumer/**"
