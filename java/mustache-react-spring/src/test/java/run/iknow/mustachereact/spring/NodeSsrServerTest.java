@@ -51,6 +51,39 @@ class NodeSsrServerTest {
     }
 
     @Test
+    void restartsACrashedServer() throws Exception {
+        assumeTrue(nodeAvailable(), "needs node on the PATH");
+        Path bundle = dir.resolve("server.mjs");
+        Files.write(bundle, ("import { createServer } from 'node:http';\n"
+                + "const port = Number(process.argv[process.argv.indexOf('--port') + 1]);\n"
+                + "createServer((req, res) => res.end(JSON.stringify({ html: 'pid ' + process.pid }))).listen(port, '127.0.0.1');\n")
+                .getBytes(StandardCharsets.UTF_8));
+        NodeSsrServer server = new NodeSsrServer(new DefaultResourceLoader(), bundle.toUri().toString(), "node", null,
+                10_000, false);
+        server.setRestartIntervalMillis(0);
+        try {
+            server.start();
+            String first = server.getEndpoint();
+            assertThat(first).isNotNull();
+
+            server.process().destroyForcibly().waitFor();
+            assertThat(server.getEndpoint()).as("falls back while restarting").isNull();
+            assertThat(server.isRunning()).as("still running for the lifecycle").isTrue();
+
+            String restarted = null;
+            for (int i = 0; i < 100 && restarted == null; i++) {
+                Thread.sleep(100);
+                restarted = server.getEndpoint();
+            }
+            assertThat(restarted).as("restarted within 10 s").isNotNull();
+            assertThat(new HttpSsrEngine(server::getEndpoint, 2000).render("pages/A", "{}", "{}")).startsWith("pid ");
+        } finally {
+            server.stop();
+        }
+        assertThat(server.getEndpoint()).isNull();
+    }
+
+    @Test
     void withoutABundlePagesRenderInTheBrowserUnlessSsrIsRequired() {
         String missing = dir.resolve("missing.mjs").toUri().toString();
 
