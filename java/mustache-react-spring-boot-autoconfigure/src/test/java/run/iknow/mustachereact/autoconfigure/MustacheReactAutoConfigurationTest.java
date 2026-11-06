@@ -11,6 +11,7 @@ import run.iknow.mustachereact.spring.DevServerFrontendAssets;
 import run.iknow.mustachereact.spring.FrontendAssets;
 import run.iknow.mustachereact.spring.ManifestFrontendAssets;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
+import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
 
 class MustacheReactAutoConfigurationTest {
@@ -52,6 +53,16 @@ class MustacheReactAutoConfigurationTest {
                     assertThat(assets).isInstanceOf(DevServerFrontendAssets.class);
                     assertThat(assets.viewHead()).contains("http://127.0.0.1:5199/mustache-react/@vite/client");
                 });
+    }
+
+    @Test
+    void startsTheDevServerOnlyInDevelopmentMode() {
+        runner.run(context -> assertThat(context).doesNotHaveBean(ViteDevServerProcess.class));
+        runner.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.url=http://localhost:1",
+                "mustache-react.frontend-dir=does-not-exist")
+                .run(context -> assertThat(context).hasSingleBean(ViteDevServerProcess.class));
+        runner.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.auto-start=false")
+                .run(context -> assertThat(context).doesNotHaveBean(ViteDevServerProcess.class));
     }
 
     @Test

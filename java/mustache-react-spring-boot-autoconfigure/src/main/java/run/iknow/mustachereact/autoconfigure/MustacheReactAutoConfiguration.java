@@ -1,5 +1,8 @@
 package run.iknow.mustachereact.autoconfigure;
 
+import java.io.File;
+import java.net.URI;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -10,6 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
@@ -25,6 +29,7 @@ import run.iknow.mustachereact.spring.PropsSerializer;
 import run.iknow.mustachereact.spring.ReactIslandLambda;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
+import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ViteManifestSource;
 
 /**
@@ -127,5 +132,25 @@ public class MustacheReactAutoConfiguration {
     public static ReactPageHandlerAdapterPostProcessor reactPageHandlerAdapterPostProcessor(
             ObjectProvider<ReactPageRenderer> renderer) {
         return new ReactPageHandlerAdapterPostProcessor(renderer);
+    }
+
+    /** Development mode: {@code mustache-react.dev-server.enabled=true}. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "dev-server.enabled", havingValue = "true")
+    static class DevServerConfiguration {
+
+        /**
+         * Starts the Vite dev server with the application, unless {@code mustache-react.dev-server.auto-start=false}.
+         */
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "dev-server.auto-start", havingValue = "true",
+                matchIfMissing = true)
+        ViteDevServerProcess mustacheReactViteDevServer(MustacheReactProperties properties) {
+            MustacheReactProperties.DevServer dev = properties.getDevServer();
+            return new ViteDevServerProcess(new File(properties.getFrontendDir()).getAbsoluteFile(),
+                    URI.create(dev.getUrl()), properties.getPublicPath(), dev.getNode(),
+                    new File(dev.getNodeInstallDir()).getAbsoluteFile(), dev.getStartupTimeout().toMillis());
+        }
     }
 }

@@ -1,6 +1,8 @@
 # Gradle
 .gradle/
 build/
+# ...but not source packages named "build" (run.iknow.mustachereact.build)
+!**/src/**/build/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Node
@@ -16,3 +18,11 @@ coverage/
 .DS_Store
 out/
 bin/
+# ...but not the committed CLI entry points of the JS packages
+!js/*/bin/
+
+# Node.js downloaded by the mustache-react build plugins
+.mustache-react/
+
+# Maven
+target/

@@ -3,24 +3,43 @@
   "version": "0.1.0-SNAPSHOT",
   "description": "Vite plugin used by the mustache-react Gradle and Maven plugins. Most users never configure it directly.",
   "license": "Apache-2.0",
-  "repository": { "type": "git", "url": "git+https://github.com/inho-team/mustache-react.git", "directory": "js/vite-plugin" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inho-team/mustache-react.git",
+    "directory": "js/vite-plugin"
+  },
   "type": "module",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run"
   },
   "peerDependencies": {
-    "vite": ">=5"
+    "vite": ">=5",
+    "@vitejs/plugin-react": ">=4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
+  },
+  "bin": {
+    "mustache-react-vite": "./bin/mustache-react-vite.js"
+  },
+  "peerDependenciesMeta": {
+    "@vitejs/plugin-react": {
+      "optional": true
+    }
   }
 }

@@ -3,25 +3,22 @@
 //   pnpm install                       (once, at the repository root)
 //   ./gradlew :examples:basic:run
 //   ./gradlew :examples:basic:run -PspringBootVersion=4.1.2
+//   ./gradlew :examples:basic:run --args=--spring.profiles.active=dev    (Vite dev server with HMR, started by Spring)
 //
-// -PskipFrontend skips the frontend build (the tests use a fixed manifest and do not need it).
+// -PmustacheReact.skipFrontend skips the frontend build (the tests use a fixed manifest and do not need it).
 
 plugins {
     id("mr.java-conventions")
     application
+    id("run.iknow.mustache-react")
 }
 
 val springBootVersion: String by extra
 val testRelease: Int by extra
 
 // Boot 2.7 apps may target Java 8; Boot 3+ needs Java 17.
-// The processor writes the DTO types where the frontend imports them; declaring the file as an output lets Gradle
-// re-create it when it is missing. The M4 Gradle plugin will set this up automatically.
-val generatedTypes = layout.projectDirectory.file("src/main/frontend/generated/types.ts")
 tasks.named<JavaCompile>("compileJava") {
     options.release.set(testRelease)
-    options.compilerArgs.add("-Amustachereact.typesFile=${generatedTypes.asFile.absolutePath}")
-    outputs.file(generatedTypes).withPropertyName("typescriptTypes")
 }
 
 application {
@@ -31,35 +28,30 @@ application {
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
     implementation(project(":mustache-react-spring-boot-starter"))
-    // Writes TypeScript types for the @ReactPage DTOs (see compileJava below).
-    annotationProcessor(project(":mustache-react-processor"))
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
-// --- Frontend build ------------------------------------------------------------------------------------------------
-// Stand-in until the mustache-react Gradle plugin (M4): runs `vite build` through pnpm and adds the output
-// (static/mustache-react/**) to the application resources.
-
-val skipFrontend = providers.gradleProperty("skipFrontend").isPresent
-val frontendOutput = layout.buildDirectory.dir("mustache-react")
-
-val buildFrontend by tasks.registering(Exec::class) {
-    description = "Builds src/main/frontend with Vite."
-    group = "build"
-    enabled = !skipFrontend
-    workingDir = rootDir
-    // The trailing "..." also builds the workspace packages the example depends on (@mustache-react/*).
-    commandLine("pnpm", "--filter", "@mustache-react-examples/basic...", "run", "build")
-    // generated/types.ts, part of the sources below, is written by the annotation processor during compileJava.
-    dependsOn(tasks.named("compileJava"))
-    inputs.files(fileTree("src/main/frontend") { exclude("node_modules/**") }).withPropertyName("sources")
-    inputs.files(fileTree(rootDir.resolve("js")) { include("*/src/**", "*/package.json") }).withPropertyName("packages")
-    outputs.dir(frontendOutput.map { it.dir("static") })
+// An application outside this repository needs no mustacheReact block. Inside it, the example's frontend belongs to
+// the repository's pnpm workspace: dependencies are installed once at the root and the @mustache-react/* packages
+// come from js/, not from npm.
+mustacheReact {
+    install.set(false)
+    nodeDownload.set(false)
+    processorDependency = project(":mustache-react-processor")
 }
 
-tasks.processResources {
-    if (!skipFrontend) {
-        from(buildFrontend.map { frontendOutput.get() })
-    }
+val buildWorkspacePackages by tasks.registering(Exec::class) {
+    description = "Builds the @mustache-react/* packages the example frontend uses from the workspace."
+    workingDir = rootDir
+    commandLine("pnpm", "--filter", "@mustache-react-examples/basic^...", "run", "build")
+    inputs.files(fileTree(rootDir.resolve("js")) { include("*/src/**", "*/package.json") }).withPropertyName("packages")
+    outputs.dirs(listOf("client", "server", "vite-plugin").map { rootDir.resolve("js/$it/dist") })
+}
+
+tasks.named("mustacheReactBuild") {
+    dependsOn(buildWorkspacePackages)
+}
+buildWorkspacePackages {
+    onlyIf { mustacheReact.frontendBuild.get() }
 }
