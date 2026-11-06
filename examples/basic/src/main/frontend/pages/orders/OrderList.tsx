@@ -36,7 +36,9 @@ export default function OrderList({ orders, total }: PageProps<'orders/OrderList
         <tbody>
           {visible.map((order) => (
             <tr key={order.id}>
-              <td>{order.id}</td>
+              <td>
+                <a href={`/orders/${order.id}`}>{order.id}</a>
+              </td>
               <td>{order.customer}</td>
               <td>{order.amount.toLocaleString('ko-KR')}원</td>
               <td>{order.status}</td>

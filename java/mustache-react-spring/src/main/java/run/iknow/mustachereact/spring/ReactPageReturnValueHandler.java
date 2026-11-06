@@ -26,6 +26,9 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * {@code javax.servlet} / {@code jakarta.servlet} types, so one binary runs on Spring 5.3, 6.x and 7.x, and keeps
  * {@code ResponseBodyAdvice}, message converters and content negotiation working as usual.
  *
+ * <p>A method may return a {@link ResponseEntity}: its status and headers apply to the page and to the JSON
+ * response, and its body is the props (e.g. {@code ResponseEntity.status(404).body(new NotFoundPage(id))}).
+ *
  * <p>Forms: a method may return {@code "redirect:/path"}. JSON requests ({@code useSpringForm}) then get
  * {@code {"redirect": "/path"}}, browsers a 303. When {@code @Valid} found errors (a {@code BindingResult} parameter
  * holds them), JSON requests get 400 with {@code {"errors": {fields, global}}}; browsers get the page again with the
@@ -74,9 +77,14 @@ public class ReactPageReturnValueHandler implements HandlerMethodReturnValueHand
     @Override
     public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest) throws Exception {
+        // A ResponseEntity sets the status and headers of both responses; its body is the props.
+        int status = 200;
+        HttpHeaders entityHeaders = null;
         if (returnValue instanceof ResponseEntity) {
-            throw new IllegalStateException("@ReactPage method " + returnType.getMethod()
-                    + " returned a ResponseEntity. Return the props object (DTO or Map) directly.");
+            ResponseEntity<?> entity = (ResponseEntity<?>) returnValue;
+            status = statusCode(entity);
+            entityHeaders = entity.getHeaders();
+            returnValue = entity.getBody();
         }
         ReactPageRenderer pages = renderer.getObject();
         Locale locale = LocaleContextHolder.getLocale();
@@ -95,7 +103,7 @@ public class ReactPageReturnValueHandler implements HandlerMethodReturnValueHand
                 data = ResponseEntity.status(400).header(HttpHeaders.VARY, HttpHeaders.ACCEPT)
                         .body(Collections.<String, Object>singletonMap("errors", errors));
             } else {
-                data = ResponseEntity.ok().header(HttpHeaders.VARY, HttpHeaders.ACCEPT).body(returnValue);
+                data = response(status, entityHeaders).body(returnValue);
             }
             entityHandler.handleReturnValue(data, DATA_RETURN_TYPE, mavContainer, webRequest);
             return;
@@ -111,11 +119,49 @@ public class ReactPageReturnValueHandler implements HandlerMethodReturnValueHand
         Map<String, Object> extraContext = errors == null ? null
                 : Collections.<String, Object>singletonMap("errors", errors);
         String html = pages.render(page.value(), page.title(), propsSerializer.serialize(returnValue), extraContext, locale);
-        ResponseEntity<String> response = ResponseEntity.ok()
-                .contentType(TEXT_HTML_UTF8)
-                .header(HttpHeaders.VARY, HttpHeaders.ACCEPT)
-                .body(html);
+        ResponseEntity<String> response = response(status, entityHeaders).contentType(TEXT_HTML_UTF8).body(html);
         entityHandler.handleReturnValue(response, HTML_RETURN_TYPE, mavContainer, webRequest);
+    }
+
+    private static ResponseEntity.BodyBuilder response(int status, HttpHeaders headers) {
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(status);
+        if (headers != null) {
+            builder.headers(headers);
+        }
+        return builder.header(HttpHeaders.VARY, HttpHeaders.ACCEPT);
+    }
+
+    /**
+     * The status of a {@code ResponseEntity} as a number. {@code getStatusCode()} returns {@code HttpStatus} on
+     * Spring 5.3 and {@code HttpStatusCode} on Spring 6+, so it is called reflectively: both have {@code value()}.
+     */
+    static int statusCode(ResponseEntity<?> entity) {
+        try {
+            Object code = GET_STATUS_CODE.invoke(entity);
+            return (Integer) STATUS_VALUE.invoke(code);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("Could not read the status of " + entity, ex);
+        }
+    }
+
+    private static final Method GET_STATUS_CODE;
+    private static final Method STATUS_VALUE;
+
+    static {
+        try {
+            GET_STATUS_CODE = ResponseEntity.class.getMethod("getStatusCode");
+            // The public type declaring value(): HttpStatusCode on Spring 6+ (its implementations may be
+            // package-private), HttpStatus on Spring 5.3.
+            Class<?> statusType;
+            try {
+                statusType = Class.forName("org.springframework.http.HttpStatusCode");
+            } catch (ClassNotFoundException ex) {
+                statusType = Class.forName("org.springframework.http.HttpStatus");
+            }
+            STATUS_VALUE = statusType.getMethod("value");
+        } catch (ReflectiveOperationException ex) {
+            throw new ExceptionInInitializerError(ex);
+        }
     }
 
     /**

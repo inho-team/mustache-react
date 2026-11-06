@@ -201,6 +201,24 @@ class TypeScriptProcessorTest {
     }
 
     @Test
+    void usesTheBodyTypeOfResponseEntity() throws Exception {
+        Compilation result = Compilation.compile(workDir, sources(
+                "org.springframework.http.ResponseEntity", "package org.springframework.http; public class ResponseEntity<T> { }",
+                "app.Controller", "package app;\n"
+                        + "import org.springframework.http.ResponseEntity;\n"
+                        + "import run.iknow.mustachereact.spring.ReactPage;\n"
+                        + "public class Controller {\n"
+                        + "  @ReactPage(\"d\") public ResponseEntity<Detail> show() { return null; }\n"
+                        + "  @ReactPage(\"w\") public ResponseEntity<?> any() { return null; }\n"
+                        + "}\n",
+                "app.Detail", "package app; public class Detail { public long getId() { return 0; } }"));
+
+        assertThat(result.success).as(result.diagnostics).isTrue();
+        assertThat(result.output).contains("  'd': Detail;\n").contains("  'w': unknown;\n")
+                .contains("export interface Detail {\n  id: number;\n}\n");
+    }
+
+    @Test
     void leavesAnUnchangedFileAlone() throws Exception {
         Map<String, String> sources = sources("app.OrderController", CONTROLLER, "app.OrderListResponse", RESPONSE,
                 "app.Paged", PAGED, "app.Order", ORDER);

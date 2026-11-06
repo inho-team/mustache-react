@@ -102,12 +102,15 @@ public class TypeScriptProcessor extends AbstractProcessor {
         if (page == null) {
             return;
         }
-        TypeMirror type = method.getReturnType();
+        TypeMirror type = unwrapResponseEntity(method.getReturnType());
         TypeMirror previous = pages.get(page);
         // A form handler usually returns Object ("redirect:/..." or the page props again) next to a GET handler that
         // returns the props type: the concrete type wins.
         if (previous != null && isUntyped(type)) {
             return;
+        }
+        if (type == null || type.getKind() == TypeKind.WILDCARD) {
+            type = processingEnv.getElementUtils().getTypeElement("java.lang.Object").asType();
         }
         pages.put(page, type);
         if (previous != null && !isUntyped(previous) && !processingEnv.getTypeUtils().isSameType(previous, type)) {
@@ -117,8 +120,22 @@ public class TypeScriptProcessor extends AbstractProcessor {
         }
     }
 
+    /** {@code ResponseEntity<T>} → {@code T}: the entity's body is the props. */
+    private static TypeMirror unwrapResponseEntity(TypeMirror type) {
+        if (type instanceof javax.lang.model.type.DeclaredType) {
+            javax.lang.model.type.DeclaredType declared = (javax.lang.model.type.DeclaredType) type;
+            if (((TypeElement) declared.asElement()).getQualifiedName().contentEquals("org.springframework.http.ResponseEntity")) {
+                return declared.getTypeArguments().isEmpty() ? null : declared.getTypeArguments().get(0);
+            }
+        }
+        return type;
+    }
+
     /** {@code void}, {@code Object} and {@code String} ("redirect:...") say nothing about the props. */
     private static boolean isUntyped(TypeMirror type) {
+        if (type == null || type.getKind() == TypeKind.WILDCARD) {
+            return true;
+        }
         String name = type.toString();
         return type.getKind() == TypeKind.VOID || "java.lang.Object".equals(name) || "java.lang.String".equals(name);
     }

@@ -37,5 +37,14 @@
     "imports": [
       "virtual:mustache-react/entry"
     ]
+  },
+  "pages/orders/OrderDetail.tsx": {
+    "file": "assets/OrderDetail-test.js",
+    "name": "OrderDetail",
+    "src": "pages/orders/OrderDetail.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "virtual:mustache-react/entry"
+    ]
   }
 }

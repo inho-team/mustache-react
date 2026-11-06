@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -24,6 +25,15 @@ public class OrderRepository {
 
     public List<Order> findAll() {
         return Collections.unmodifiableList(new ArrayList<>(orders));
+    }
+
+    public Optional<Order> findById(long id) {
+        for (Order order : orders) {
+            if (order.getId() == id) {
+                return Optional.of(order);
+            }
+        }
+        return Optional.empty();
     }
 
     public Order add(OrderForm form) {
