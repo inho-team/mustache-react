@@ -1,8 +1,20 @@
 {
   "name": "@mustache-react/client",
   "version": "0.1.0-SNAPSHOT",
-  "description": "Browser runtime for mustache-react: mounts and hydrates React components rendered by Spring.",
+  "description": "Browser runtime for mustache-react: mounts and hydrates the React pages and islands Spring renders, with useServerContext and useSpringForm.",
   "license": "Apache-2.0",
+  "homepage": "https://inho-team.github.io/mustache-react/",
+  "bugs": {
+    "url": "https://github.com/inho-team/mustache-react/issues"
+  },
+  "keywords": [
+    "react",
+    "spring-boot",
+    "spring-mvc",
+    "mustache",
+    "islands",
+    "hydration"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inho-team/mustache-react.git",
@@ -37,5 +49,12 @@
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

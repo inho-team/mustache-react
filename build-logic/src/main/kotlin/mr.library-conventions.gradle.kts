@@ -3,7 +3,7 @@
 plugins {
     id("mr.java-conventions")
     `java-library`
-    `maven-publish`
+    id("mr.publishing-conventions")
 }
 
 java {
@@ -33,21 +33,6 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
-            pom {
-                name.set(project.name)
-                description.set(provider { project.description ?: project.name })
-                url.set("https://github.com/inho-team/mustache-react")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/inho-team/mustache-react")
-                    connection.set("scm:git:https://github.com/inho-team/mustache-react.git")
-                }
-            }
         }
     }
 }
