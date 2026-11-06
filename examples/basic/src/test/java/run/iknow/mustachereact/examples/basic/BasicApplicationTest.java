@@ -21,7 +21,7 @@ import run.iknow.mustachereact.autoconfigure.MustacheReactProperties;
 /**
  * Starts the real application on a random port. Uses only APIs that exist in Spring Boot 2.7, 3.x and 4.x.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "mustache-react.ssr=off")
 class BasicApplicationTest {
 
     @Autowired

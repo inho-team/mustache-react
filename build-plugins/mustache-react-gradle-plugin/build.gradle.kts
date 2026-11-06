@@ -1,7 +1,18 @@
 plugins {
     id("mr.java-conventions")
     `java-gradle-plugin`
-    `maven-publish`
+    id("mr.publishing-conventions")
+    // Publishes to the Gradle Plugin Portal: ./gradlew -p build-plugins publishPlugins (GRADLE_PUBLISH_KEY/SECRET).
+    id("com.gradle.plugin-publish") version "2.2.1"
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.withType<Javadoc>().configureEach {
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
 }
 
 description = "Gradle plugin for mustache-react: installs Node, builds the frontend into the resources, wires the type generator."
@@ -12,12 +23,15 @@ dependencies {
 }
 
 gradlePlugin {
+    website.set("https://github.com/inho-team/mustache-react")
+    vcsUrl.set("https://github.com/inho-team/mustache-react")
     plugins {
         create("mustacheReact") {
             id = "run.iknow.mustache-react"
             implementationClass = "run.iknow.mustachereact.gradle.MustacheReactPlugin"
             displayName = "mustache-react"
             description = project.description
+            tags.set(listOf("spring-boot", "react", "vite", "mustache", "frontend"))
         }
     }
 }

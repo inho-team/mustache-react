@@ -31,13 +31,26 @@ public class ReactIslandLambda implements Mustache.Lambda {
     public static final String ISLANDS_DIRECTORY = "islands/";
 
     private final PropsSerializer propsSerializer;
+    private final ServerSideRendering ssr;
+    private final ServerContextFactory serverContext;
     private final Map<String, IslandTag> parsed = new ConcurrentHashMap<>();
 
     /**
      * @param propsSerializer turns the props into JSON with the application's message converters
      */
     public ReactIslandLambda(PropsSerializer propsSerializer) {
+        this(propsSerializer, ServerSideRendering.off(), null);
+    }
+
+    /**
+     * @param propsSerializer turns the props into JSON with the application's message converters
+     * @param ssr server-side rendering of the islands
+     * @param serverContext the server context given to server-side rendering
+     */
+    public ReactIslandLambda(PropsSerializer propsSerializer, ServerSideRendering ssr, ServerContextFactory serverContext) {
         this.propsSerializer = propsSerializer;
+        this.ssr = ssr;
+        this.serverContext = serverContext;
     }
 
     @Override
@@ -64,7 +77,11 @@ public class ReactIslandLambda implements Mustache.Lambda {
         }
 
         String component = ISLANDS_DIRECTORY + tag.component;
-        String id = IslandRequestState.current().register(component);
-        out.write(IslandMarkup.render(component, id, propsSerializer.serialize(props), null));
+        IslandRequestState state = IslandRequestState.current();
+        String id = state.register(component);
+        String propsJson = propsSerializer.serialize(props);
+        String ssrHtml = ssr.render(component, propsJson,
+                () -> state.contextJson(() -> serverContext == null ? "{}" : serverContext.json(null)));
+        out.write(IslandMarkup.render(component, id, propsJson, ssrHtml));
     }
 }

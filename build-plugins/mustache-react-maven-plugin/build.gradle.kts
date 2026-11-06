@@ -1,7 +1,7 @@
 plugins {
     id("mr.java-conventions")
     `java-library`
-    `maven-publish`
+    id("mr.publishing-conventions")
     // Generates META-INF/maven/plugin.xml from the @Mojo annotations, as maven-plugin-plugin would.
     id("de.benediktritter.maven-plugin-development") version "0.4.3"
 }
@@ -37,15 +37,6 @@ publishing {
             from(components["java"])
             pom {
                 packaging = "maven-plugin"
-                name.set(project.name)
-                description.set(project.description)
-                url.set("https://github.com/inho-team/mustache-react")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
             }
         }
     }

@@ -2,16 +2,19 @@ package run.iknow.mustachereact.autoconfigure;
 
 import java.io.File;
 import java.net.URI;
+import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
@@ -19,9 +22,18 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.samskivert.mustache.Mustache;
 
+import run.iknow.mustachereact.core.SsrEngine;
 import run.iknow.mustachereact.core.ViteDevServer;
 import run.iknow.mustachereact.spring.DevServerFrontendAssets;
 import run.iknow.mustachereact.spring.FrontendAssets;
+import run.iknow.mustachereact.spring.HttpSsrEngine;
+import run.iknow.mustachereact.spring.NodeSsrServer;
+import run.iknow.mustachereact.spring.ServerSideRendering;
+import run.iknow.mustachereact.spring.LocaleContextContributor;
+import run.iknow.mustachereact.spring.MessagesContextContributor;
+import run.iknow.mustachereact.spring.SecurityContextContributors;
+import run.iknow.mustachereact.spring.ServerContextContributor;
+import run.iknow.mustachereact.spring.ServerContextFactory;
 import run.iknow.mustachereact.spring.ManifestFrontendAssets;
 import run.iknow.mustachereact.spring.MustacheReactHelpers;
 import run.iknow.mustachereact.spring.MustacheReactModelAdvice;
@@ -86,9 +98,104 @@ public class MustacheReactAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ReactPageRenderer reactPageRenderer(ResourceLoader resourceLoader, MustacheReactProperties properties,
-            ObjectProvider<Mustache.Compiler> compiler, FrontendAssets assets) {
+            ObjectProvider<Mustache.Compiler> compiler, FrontendAssets assets, ServerContextFactory serverContext,
+            ServerSideRendering ssr) {
         return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler), assets,
-                properties.getLayout(), properties.isContentNegotiation());
+                serverContext, ssr, properties.getLayout(), properties.isContentNegotiation());
+    }
+
+    /**
+     * Server-side rendering policy ({@code mustache-react.ssr}). With {@code off}, the default, nothing is started.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ServerSideRendering mustacheReactServerSideRendering(MustacheReactProperties properties,
+            ObjectProvider<SsrEngine> engine) {
+        MustacheReactProperties.SsrMode mode = properties.getSsr();
+        if (mode == MustacheReactProperties.SsrMode.OFF) {
+            return ServerSideRendering.off();
+        }
+        SsrEngine ssrEngine = engine.getIfAvailable();
+        if (ssrEngine == null && mode == MustacheReactProperties.SsrMode.ALWAYS) {
+            throw new IllegalStateException("mustache-react.ssr=always, but there is no SsrEngine");
+        }
+        return new ServerSideRendering(ServerSideRendering.Mode.valueOf(mode.name()), ssrEngine);
+    }
+
+    /** {@code mustache-react.ssr=auto|always}: an engine calling the SSR server over HTTP. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnExpression("!'${mustache-react.ssr:off}'.equalsIgnoreCase('off')")
+    static class SsrConfiguration {
+
+        /** Production: runs the SSR bundle from the jar as a Node.js sidecar. */
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "dev-server.enabled", havingValue = "false",
+                matchIfMissing = true)
+        NodeSsrServer mustacheReactSsrServer(ResourceLoader resourceLoader, MustacheReactProperties properties) {
+            MustacheReactProperties.DevServer dev = properties.getDevServer();
+            MustacheReactProperties.SsrServer ssr = properties.getSsrServer();
+            return new NodeSsrServer(resourceLoader, ssr.getBundleLocation(), dev.getNode(),
+                    new File(dev.getNodeInstallDir()).getAbsoluteFile(), ssr.getStartupTimeout().toMillis(),
+                    properties.getSsr() == MustacheReactProperties.SsrMode.ALWAYS);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(SsrEngine.class)
+        SsrEngine mustacheReactSsrEngine(MustacheReactProperties properties, ObjectProvider<NodeSsrServer> server) {
+            int timeout = (int) properties.getSsrServer().getTimeout().toMillis();
+            if (properties.getDevServer().isEnabled()) {
+                // Development: the Vite dev server renders with the current sources.
+                String endpoint = properties.getDevServer().getUrl().replaceAll("/+$", "") + HttpSsrEngine.RENDER_PATH;
+                return new HttpSsrEngine(() -> endpoint, timeout);
+            }
+            return new HttpSsrEngine(() -> {
+                NodeSsrServer node = server.getIfAvailable();
+                return node == null ? null : node.getEndpoint();
+            }, timeout);
+        }
+    }
+
+    /**
+     * The server context of every page: the {@link ServerContextContributor} beans, in {@code @Order}.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ServerContextFactory mustacheReactServerContext(ObjectProvider<ServerContextContributor> contributors,
+            PropsSerializer propsSerializer) {
+        return new ServerContextFactory(contributors.orderedStream().collect(Collectors.toList()), propsSerializer);
+    }
+
+    @Bean
+    public ServerContextContributor mustacheReactLocaleContext() {
+        return new LocaleContextContributor();
+    }
+
+    @Bean
+    public ServerContextContributor mustacheReactMessagesContext(MessageSource messageSource,
+            MustacheReactProperties properties) {
+        return new MessagesContextContributor(messageSource, properties.getContext().getMessages());
+    }
+
+    /** CSRF token and signed-in user, with Spring Security. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = {
+            "org.springframework.security.core.context.SecurityContextHolder",
+            "org.springframework.security.web.csrf.CsrfToken",
+    })
+    static class SecurityContextConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "context.csrf", matchIfMissing = true)
+        ServerContextContributor mustacheReactCsrfContext() {
+            return SecurityContextContributors.csrf();
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = MustacheReactProperties.PREFIX, name = "context.user", matchIfMissing = true)
+        ServerContextContributor mustacheReactUserContext() {
+            return SecurityContextContributors.user();
+        }
     }
 
     /**
@@ -102,14 +209,15 @@ public class MustacheReactAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ReactIslandLambda reactIslandLambda(PropsSerializer propsSerializer) {
-        return new ReactIslandLambda(propsSerializer);
+    public ReactIslandLambda reactIslandLambda(PropsSerializer propsSerializer, ServerSideRendering ssr,
+            ServerContextFactory serverContext) {
+        return new ReactIslandLambda(propsSerializer, ssr, serverContext);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public MustacheReactHelpers mustacheReactHelpers(FrontendAssets assets) {
-        return new MustacheReactHelpers(assets);
+    public MustacheReactHelpers mustacheReactHelpers(FrontendAssets assets, ServerContextFactory serverContext) {
+        return new MustacheReactHelpers(assets, serverContext);
     }
 
     /**
@@ -130,8 +238,8 @@ public class MustacheReactAutoConfiguration {
      */
     @Bean
     public static ReactPageHandlerAdapterPostProcessor reactPageHandlerAdapterPostProcessor(
-            ObjectProvider<ReactPageRenderer> renderer) {
-        return new ReactPageHandlerAdapterPostProcessor(renderer);
+            ObjectProvider<ReactPageRenderer> renderer, ObjectProvider<MessageSource> messageSource) {
+        return new ReactPageHandlerAdapterPostProcessor(renderer, messageSource);
     }
 
     /** Development mode: {@code mustache-react.dev-server.enabled=true}. */

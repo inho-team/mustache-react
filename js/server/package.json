@@ -1,18 +1,37 @@
 {
   "name": "@mustache-react/server",
   "version": "0.1.0-SNAPSHOT",
-  "description": "Server-side rendering entry for mustache-react (Node sidecar and GraalJS).",
+  "description": "Server-side rendering for mustache-react: the renderer and the Node.js sidecar Spring calls.",
   "license": "Apache-2.0",
-  "repository": { "type": "git", "url": "git+https://github.com/inho-team/mustache-react.git", "directory": "js/server" },
+  "homepage": "https://inho-team.github.io/mustache-react/",
+  "bugs": {
+    "url": "https://github.com/inho-team/mustache-react/issues"
+  },
+  "keywords": [
+    "react",
+    "ssr",
+    "spring-boot",
+    "mustache"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inho-team/mustache-react.git",
+    "directory": "js/server"
+  },
   "type": "module",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
     "@mustache-react/client": "workspace:*"
@@ -22,11 +41,19 @@
     "react-dom": ">=18"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

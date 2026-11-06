@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Header from '../../components/Header';
 import type { PageProps } from '../../generated/types';
 
 // Props come from the Java method annotated @ReactPage("orders/OrderList"); see generated/types.ts.
@@ -8,7 +9,11 @@ export default function OrderList({ orders, total }: PageProps<'orders/OrderList
 
   return (
     <main className="page">
+      <Header />
       <h1>주문 목록</h1>
+      <p>
+        <a href="/orders/new">주문 등록</a>
+      </p>
       <input
         aria-label="고객 검색"
         placeholder="고객 이름으로 검색"

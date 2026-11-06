@@ -15,7 +15,18 @@ try {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error));
-  page.on('console', (message) => message.type() === 'error' && errors.push(new Error(message.text())));
+  page.on('console', (message) => {
+    // Chrome logs every 4xx response; the 400 with @Valid errors is the expected answer to an invalid form.
+    const expected = /Failed to load resource: the server responded with a status of 400/.test(message.text());
+    if (message.type() === 'error' && !expected) {
+      errors.push(new Error(message.text()));
+    }
+  });
+
+  // Server-side rendering (mustache-react.ssr=auto): the HTML already holds the page, which React then hydrates.
+  const served = await (await fetch(`${baseUrl}/orders`, { headers: { Accept: 'text/html' } })).text();
+  assert.match(served, /data-mr-ssr="true"><main class="page">/);
+  assert.match(served, /<h1>주문 목록<\/h1>/);
 
   await page.goto(`${baseUrl}/orders`);
   await page.getByRole('heading', { name: '주문 목록' }).waitFor();
@@ -32,7 +43,9 @@ try {
 
   assert.deepEqual(errors, []);
 
-  // Mustache page with React islands.
+  // Mustache page with React islands, also rendered on the server.
+  const dashboard = await (await fetch(`${baseUrl}/dashboard`, { headers: { Accept: 'text/html' } })).text();
+  assert.match(dashboard, /data-mr-island="islands\/StatusBadge" data-mr-id="mr-1" data-mr-ssr="true"><button/);
   await page.goto(`${baseUrl}/dashboard`);
   await page.getByRole('heading', { name: '대시보드' }).waitFor();
   await page.locator('[data-testid="order-chart"] .recharts-bar-rectangle').first().waitFor();
@@ -48,9 +61,34 @@ try {
 
   assert.deepEqual(errors, []);
 
+  // Sign in through the React login page (Spring Security form login, CSRF token from the server context).
+  await page.goto(`${baseUrl}/orders/new`);
+  await page.getByRole('heading', { name: '로그인' }).waitFor();
+  await page.getByLabel('비밀번호').fill('password');
+  await page.getByRole('button', { name: '로그인' }).click();
+  await page.getByRole('heading', { name: '주문 등록' }).waitFor();
+  assert.equal(await page.getByTestId('user').textContent(), 'kim님');
+
+  // Server-side validation errors appear next to the fields.
+  await page.getByRole('button', { name: '등록' }).click();
+  await page.getByTestId('customer-error').waitFor();
+  assert.equal(await page.getByTestId('customer-error').textContent(), '고객 이름을 입력하세요.');
+  assert.equal(await page.getByTestId('amount-error').textContent(), '금액은 1원 이상이어야 합니다.');
+
+  // A valid order is saved; "redirect:/orders" brings the browser to the list.
+  await page.getByLabel('고객').fill('최유나');
+  await page.getByLabel('금액').fill('45000');
+  await page.getByRole('button', { name: '등록' }).click();
+  await page.waitForURL(`${baseUrl}/orders`);
+  await page.getByText('최유나').waitFor();
+  assert.equal(await page.getByTestId('summary').textContent(), '5 / 5건');
+  assert.equal(await page.getByTestId('user').textContent(), 'kim님');
+
+  assert.deepEqual(errors, []);
+
   const api = await fetch(`${baseUrl}/orders`, { headers: { Accept: 'application/json' } });
   assert.match(api.headers.get('content-type') ?? '', /^application\/json/);
-  assert.equal((await api.json()).total, 4);
+  assert.equal((await api.json()).total, 5);
 
   console.log('e2e smoke test passed');
 } finally {

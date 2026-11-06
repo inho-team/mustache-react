@@ -98,6 +98,16 @@ class MustacheReactPluginTest {
     }
 
     @Test
+    void passesTheSsrOutputDirectoryWhenSsrIsOn() throws IOException {
+        write("build.gradle", read("build.gradle").replace("types = false", "types = false\n  ssr = true"));
+
+        runner("processResources").build();
+
+        assertThat(read("cli-calls.txt")).contains(" --ssr --ssr-out-dir "
+                + project.resolve("build/mustache-react/resources/META-INF/mustache-react/ssr").toFile().getAbsolutePath());
+    }
+
+    @Test
     void isUpToDateUntilAFrontendSourceChanges() throws IOException {
         runner("processResources").build();
 

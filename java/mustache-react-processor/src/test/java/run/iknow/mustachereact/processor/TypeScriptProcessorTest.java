@@ -184,6 +184,23 @@ class TypeScriptProcessorTest {
     }
 
     @Test
+    void prefersTheConcretePropsTypeOverAFormHandlersObject() throws Exception {
+        Compilation result = Compilation.compile(workDir, sources(
+                "app.FormController", "package app;\n"
+                        + "import run.iknow.mustachereact.spring.ReactPage;\n"
+                        + "public class FormController {\n"
+                        + "  @ReactPage(\"f\") public Object create() { return \"redirect:/\"; }\n"
+                        + "  @ReactPage(\"f\") public FormPage show() { return null; }\n"
+                        + "  @ReactPage(\"g\") public FormPage show2() { return null; }\n"
+                        + "  @ReactPage(\"g\") public String update() { return \"redirect:/\"; }\n"
+                        + "}\n",
+                "app.FormPage", "package app; public class FormPage { public String getName() { return null; } }"));
+
+        assertThat(result.diagnostics).doesNotContain("different types");
+        assertThat(result.output).contains("  'f': FormPage;\n  'g': FormPage;\n");
+    }
+
+    @Test
     void leavesAnUnchangedFileAlone() throws Exception {
         Map<String, String> sources = sources("app.OrderController", CONTROLLER, "app.OrderListResponse", RESPONSE,
                 "app.Paged", PAGED, "app.Order", ORDER);

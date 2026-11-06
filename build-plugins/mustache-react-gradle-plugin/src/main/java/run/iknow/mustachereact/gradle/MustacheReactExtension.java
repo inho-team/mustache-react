@@ -28,6 +28,12 @@ public abstract class MustacheReactExtension {
     /** @return whether to build the frontend into the resources. Default: {@code true}, or {@code false} with {@code -PmustacheReact.skipFrontend} */
     public abstract Property<Boolean> getFrontendBuild();
 
+    /**
+     * @return whether to build the server-side rendering bundle, for {@code mustache-react.ssr=auto|always}.
+     *         Needs {@code @mustache-react/server} in the frontend dependencies. Default: {@code false}
+     */
+    public abstract Property<Boolean> getSsr();
+
     /** @return whether to install the frontend dependencies before building. Default: {@code true} */
     public abstract Property<Boolean> getInstall();
 

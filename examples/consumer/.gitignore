@@ -1,0 +1,6 @@
+build/
+.gradle/
+node_modules/
+.mustache-react/
+src/main/frontend/generated/
+src/main/frontend/package-lock.json

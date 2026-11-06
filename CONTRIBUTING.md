@@ -64,6 +64,22 @@ cd examples/basic && mvn package -Dspring-boot.version=4.1.2 -Dmaven.compiler.re
 
 `examples/basic/src/main/frontend/generated/types.ts`는 Java 빌드 때 `mustache-react-processor`가 만듭니다. 예제의 DTO를 바꿨다면 `./gradlew build`를 실행하고 생성된 파일도 함께 커밋해 주세요. 커밋본과 다르면 CI가 실패합니다.
 
+### 소비자 테스트
+
+```bash
+scripts/consumer-test.sh
+```
+
+`examples/consumer`를 저장소 밖 프로젝트처럼 빌드하고 실행합니다. 배포본 형태(mavenLocal, npm tarball)의 artifact로 Node 다운로드, npm 설치, `bootJar`, SSR까지 확인합니다. 배포 방식에 영향을 주는 변경(빌드 플러그인, 패키지 구성, auto-configuration)은 이 테스트로 확인해 주세요.
+
+### 문서 사이트
+
+```bash
+pnpm --filter @mustache-react/website dev
+```
+
+사용자에게 보이는 동작을 바꾸면 `website/`의 해당 페이지도 수정합니다. 릴리스 절차는 [RELEASING.md](RELEASING.md)에 있습니다.
+
 ## 코드 규칙
 
 ### Java

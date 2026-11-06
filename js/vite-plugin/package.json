@@ -1,8 +1,19 @@
 {
   "name": "@mustache-react/vite-plugin",
   "version": "0.1.0-SNAPSHOT",
-  "description": "Vite plugin used by the mustache-react Gradle and Maven plugins. Most users never configure it directly.",
+  "description": "Vite plugin and mustache-react-vite CLI for mustache-react: generated entries, manifest for Spring, dev server and SSR bundle.",
   "license": "Apache-2.0",
+  "homepage": "https://inho-team.github.io/mustache-react/",
+  "bugs": {
+    "url": "https://github.com/inho-team/mustache-react/issues"
+  },
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "react",
+    "spring-boot",
+    "mustache"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inho-team/mustache-react.git",
@@ -41,5 +52,12 @@
     "@vitejs/plugin-react": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

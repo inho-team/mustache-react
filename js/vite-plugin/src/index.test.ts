@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact } from './index.js';
+import { DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, ssrEntrySource } from './index.js';
 
 type ConfigHook = (config: { root?: string }) => {
   base: string;
@@ -33,6 +33,7 @@ describe('mustacheReact', () => {
     const server = {
       watcher: { add: (dir: string) => watched.push(dir), on: (event: string, fn: (file: string) => void) => (listeners[event] = fn) },
       ws: { send: (payload: unknown) => sent.push(payload) },
+      middlewares: { use: () => {} },
       config: { logger: { info: () => {} } },
     };
     (plugin.configureServer as unknown as (s: typeof server) => void)(server);
@@ -43,6 +44,31 @@ describe('mustacheReact', () => {
 
     expect(watched).toEqual([path.resolve('/app/src/main/resources/templates')]);
     expect(sent).toEqual([{ type: 'full-reload', path: '*' }]);
+  });
+
+  it('builds a single self-contained SSR bundle', () => {
+    const config = (mustacheReact().config as unknown as (c: unknown, e: unknown) => Record<string, any>)(
+      { root: '/app/src/main/frontend' },
+      { isSsrBuild: true },
+    );
+    expect(config.ssr).toEqual({ noExternal: true, target: 'node' });
+    expect(config.build.outDir).toBe(path.resolve('/app/build/mustache-react/ssr'));
+    expect(config.build.ssr).toBe(true);
+    expect(config.build.rollupOptions.input).toBe('virtual:mustache-react/ssr-entry');
+    expect(config.build.rollupOptions.output).toEqual({ entryFileNames: 'server.mjs', inlineDynamicImports: true });
+    const rolldown = (mustacheReact().config as unknown as (this: unknown, c: unknown, e: unknown) => Record<string, any>).call(
+      { meta: { rolldownVersion: '1.0.0' } },
+      { root: '/app/src/main/frontend' },
+      { isSsrBuild: true },
+    );
+    expect(rolldown.build.rollupOptions.output).toEqual({ entryFileNames: 'server.mjs', codeSplitting: false });
+  });
+
+  it('generates an SSR entry that serves only when run directly', () => {
+    const source = ssrEntrySource();
+    expect(source).toContain("from '@mustache-react/server'");
+    expect(source).toContain('{ eager: true }');
+    expect(source).toContain('import.meta.url === pathToFileURL(process.argv[1]).href');
   });
 
   it('accepts another output directory', () => {

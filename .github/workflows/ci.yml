@@ -116,6 +116,26 @@ jobs:
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:18080/ && break; sleep 1; done
           BASE_URL=http://localhost:18080 pnpm e2e || (cat app.log; exit 1)
 
+  consumer:
+    name: Consumer project (published-form artifacts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build examples/consumer like an outside project and run it
+        run: scripts/consumer-test.sh "$RUNNER_TEMP/consumer"
+
   js:
     name: JS packages
     runs-on: ubuntu-latest

@@ -10,7 +10,11 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import run.iknow.mustachereact.spring.DevServerFrontendAssets;
 import run.iknow.mustachereact.spring.FrontendAssets;
 import run.iknow.mustachereact.spring.ManifestFrontendAssets;
+import run.iknow.mustachereact.core.SsrEngine;
+import run.iknow.mustachereact.spring.HttpSsrEngine;
+import run.iknow.mustachereact.spring.NodeSsrServer;
 import run.iknow.mustachereact.spring.ReactPageHandlerAdapterPostProcessor;
+import run.iknow.mustachereact.spring.ServerSideRendering;
 import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ReactPageRenderer;
 
@@ -63,6 +67,41 @@ class MustacheReactAutoConfigurationTest {
                 .run(context -> assertThat(context).hasSingleBean(ViteDevServerProcess.class));
         runner.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.auto-start=false")
                 .run(context -> assertThat(context).doesNotHaveBean(ViteDevServerProcess.class));
+    }
+
+    @Test
+    void serverSideRenderingIsOffByDefault() {
+        runner.run(context -> {
+            assertThat(context.getBean(ServerSideRendering.class).getMode()).isEqualTo(ServerSideRendering.Mode.OFF);
+            assertThat(context).doesNotHaveBean(NodeSsrServer.class).doesNotHaveBean(SsrEngine.class);
+        });
+    }
+
+    @Test
+    void autoUsesTheNodeSidecarAndFallsBackWithoutABundle() {
+        runner.withPropertyValues("mustache-react.ssr=auto", "mustache-react.ssr-server.bundle-location=classpath:/none.mjs")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(NodeSsrServer.class).hasSingleBean(SsrEngine.class);
+                    assertThat(context.getBean(ServerSideRendering.class).getMode()).isEqualTo(ServerSideRendering.Mode.AUTO);
+                    assertThat(context.getBean(ServerSideRendering.class).render("pages/A", "{}", () -> "{}")).isNull();
+                });
+    }
+
+    @Test
+    void alwaysRefusesToStartWithoutABundle() {
+        runner.withPropertyValues("mustache-react.ssr=always", "mustache-react.ssr-server.bundle-location=classpath:/none.mjs")
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasStackTraceContaining("mustache-react.ssr=always"));
+    }
+
+    @Test
+    void developmentRendersThroughTheViteDevServer() {
+        runner.withPropertyValues("mustache-react.ssr=auto", "mustache-react.dev-server.enabled=true",
+                "mustache-react.dev-server.auto-start=false")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(NodeSsrServer.class).hasSingleBean(SsrEngine.class);
+                    assertThat(context.getBean(SsrEngine.class)).isInstanceOf(HttpSsrEngine.class);
+                });
     }
 
     @Test

@@ -14,12 +14,15 @@ package run.iknow.mustachereact.spring;
 public class MustacheReactHelpers {
 
     private final FrontendAssets assets;
+    private final ServerContextFactory serverContext;
 
     /**
      * @param assets produces the asset tags
+     * @param serverContext writes the server context script
      */
-    public MustacheReactHelpers(FrontendAssets assets) {
+    public MustacheReactHelpers(FrontendAssets assets, ServerContextFactory serverContext) {
         this.assets = assets;
+        this.serverContext = serverContext;
     }
 
     /**
@@ -30,9 +33,12 @@ public class MustacheReactHelpers {
     }
 
     /**
-     * @return stylesheet and preload tags of the islands rendered so far, then the entry script
+     * @return stylesheet and preload tags of the islands rendered so far, the server context, then the entry script
      */
     public String getScripts() {
-        return assets.viewScripts(IslandRequestState.current().components());
+        IslandRequestState state = IslandRequestState.current();
+        // The same context the islands were rendered with on the server, so that hydration matches.
+        String contextJson = state.contextJson(() -> serverContext.json(null));
+        return ServerContextFactory.scriptTagFor(contextJson) + assets.viewScripts(state.components());
     }
 }

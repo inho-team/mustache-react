@@ -101,7 +101,8 @@ class ReactIslandLambdaTest {
         RequestContextHolder.setRequestAttributes(new MapRequestAttributes());
         model = new HashMap<>();
         model.put("react", new ReactIslandLambda(serializer));
-        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/")));
+        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/"),
+                ReactPageRendererTest.context()));
     }
 
     @AfterEach
@@ -171,10 +172,31 @@ class ReactIslandLambdaTest {
         String scripts = html.substring(html.indexOf("<!--scripts-->") + "<!--scripts-->".length());
         assertThat(head).contains("assets/mustache-react-2.css").doesNotContain("OrderChart");
         assertThat(scripts)
-                .isEqualTo("<link rel=\"stylesheet\" href=\"/mustache-react/assets/OrderChart-3.css\">\n"
+                .isEqualTo("<script type=\"application/json\" id=\"mr-context\">{\"locale\":\"ko-KR\"}</script>\n"
+                        + "<link rel=\"stylesheet\" href=\"/mustache-react/assets/OrderChart-3.css\">\n"
                         + "<link rel=\"modulepreload\" href=\"/mustache-react/assets/OrderChart-3.js\">\n"
                         + "<link rel=\"modulepreload\" href=\"/mustache-react/assets/StatusBadge-4.js\">\n"
                         + "<script type=\"module\" src=\"/mustache-react/assets/mustache-react-2.js\"></script>\n");
+    }
+
+    @Test
+    void rendersIslandsOnTheServerWithTheSameContextAsThePage() {
+        java.util.concurrent.atomic.AtomicInteger contexts = new java.util.concurrent.atomic.AtomicInteger();
+        ServerContextFactory context = new ServerContextFactory(
+                java.util.Collections.<ServerContextContributor>singletonList(c -> c.put("n", contexts.incrementAndGet())),
+                serializer);
+        ServerSideRendering ssr = new ServerSideRendering(ServerSideRendering.Mode.AUTO,
+                (component, props, json) -> "<b>" + component + json + "</b>");
+        model.put("react", new ReactIslandLambda(serializer, ssr, context));
+        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/"), context));
+
+        String html = render("{{#react}}StatusBadge{{/react}}{{#react}}OrderChart{{/react}}{{{mr.scripts}}}");
+
+        assertThat(html)
+                .contains("data-mr-ssr=\"true\"><b>islands/StatusBadge{\"n\":1}</b></div>")
+                .contains("data-mr-ssr=\"true\"><b>islands/OrderChart{\"n\":1}</b></div>")
+                .contains("id=\"mr-context\">{\"n\":1}</script>");
+        assertThat(contexts).hasValue(1);
     }
 
     @Test
