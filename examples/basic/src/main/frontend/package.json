@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "mustache-react-vite dev",
+    "build": "mustache-react-vite build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

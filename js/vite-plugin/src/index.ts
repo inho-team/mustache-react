@@ -25,13 +25,17 @@ export interface MustacheReactOptions {
    * Default: the `MUSTACHE_REACT_OUT_DIR` environment variable, else {@link DEFAULT_OUT_DIR}.
    */
   outDir?: string;
-  /** Public URL path of the assets. Must match `mustache-react.public-path`. Default: `/mustache-react/`. */
+  /**
+   * Public URL path of the assets. Must match `mustache-react.public-path`.
+   * Default: `MUSTACHE_REACT_BASE`, else `/mustache-react/`.
+   */
   base?: string;
-  /** Dev server port. Must match `mustache-react.dev-server.url`. Default: 5173. */
+  /** Dev server port. Must match `mustache-react.dev-server.url`. Default: `MUSTACHE_REACT_DEV_PORT`, else 5173. */
   port?: number;
   /**
    * Mustache templates to watch in development; the browser reloads when one changes.
-   * Default: `../resources/templates` (that is, `src/main/resources/templates`). `false` turns it off.
+   * Default: `MUSTACHE_REACT_TEMPLATES_DIR`, else `../resources/templates` (that is, `src/main/resources/templates`).
+   * `false` turns it off.
    */
   templatesDir?: string | false;
 }
@@ -63,17 +67,17 @@ export function entrySource(): string {
  * rather than at Spring, and reloads the browser when a Mustache template changes.
  */
 export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
-  const port = options.port ?? DEFAULT_DEV_PORT;
+  const port = options.port ?? (Number(process.env.MUSTACHE_REACT_DEV_PORT) || DEFAULT_DEV_PORT);
   let templatesDir: string | undefined;
   return {
     name: 'mustache-react',
     config(userConfig) {
       const root = path.resolve(userConfig.root ?? process.cwd());
       const outDir = path.resolve(root, options.outDir ?? process.env.MUSTACHE_REACT_OUT_DIR ?? DEFAULT_OUT_DIR);
-      templatesDir =
-        options.templatesDir === false ? undefined : path.resolve(root, options.templatesDir ?? DEFAULT_TEMPLATES_DIR);
+      const templates = options.templatesDir ?? process.env.MUSTACHE_REACT_TEMPLATES_DIR ?? DEFAULT_TEMPLATES_DIR;
+      templatesDir = templates === false ? undefined : path.resolve(root, templates);
       return {
-        base: options.base ?? DEFAULT_BASE,
+        base: options.base ?? process.env.MUSTACHE_REACT_BASE ?? DEFAULT_BASE,
         server: {
           port,
           strictPort: true,

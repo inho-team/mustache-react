@@ -1,5 +1,7 @@
 package run.iknow.mustachereact.autoconfigure;
 
+import java.time.Duration;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -17,7 +19,10 @@ public class MustacheReactProperties {
     /** Server-side rendering mode. */
     private SsrMode ssr = SsrMode.OFF;
 
-    /** Directory holding the React sources, relative to the project root. Used in development mode. */
+    /**
+     * Directory holding the React sources, relative to the working directory. Used in development mode; the Gradle
+     * plugin passes the absolute path to {@code bootRun} and {@code run}.
+     */
     private String frontendDir = "src/main/frontend";
 
     /**
@@ -117,6 +122,21 @@ public class MustacheReactProperties {
         /** Origin of the Vite dev server. The public path is appended. */
         private String url = "http://localhost:5173";
 
+        /**
+         * Whether to start the dev server with the application (and stop it with the application). A dev server
+         * already listening on the port is used instead.
+         */
+        private boolean autoStart = true;
+
+        /** Node.js executable for the dev server. Default: the newest one in {@code node-install-dir}, else {@code node}. */
+        private String node = "";
+
+        /** Where the Gradle and Maven plugins download Node.js. */
+        private String nodeInstallDir = ".mustache-react/node";
+
+        /** How long to wait for the dev server to start. */
+        private Duration startupTimeout = Duration.ofSeconds(30);
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -131,6 +151,38 @@ public class MustacheReactProperties {
 
         public void setUrl(String url) {
             this.url = url;
+        }
+
+        public boolean isAutoStart() {
+            return autoStart;
+        }
+
+        public void setAutoStart(boolean autoStart) {
+            this.autoStart = autoStart;
+        }
+
+        public String getNode() {
+            return node;
+        }
+
+        public void setNode(String node) {
+            this.node = node;
+        }
+
+        public String getNodeInstallDir() {
+            return nodeInstallDir;
+        }
+
+        public void setNodeInstallDir(String nodeInstallDir) {
+            this.nodeInstallDir = nodeInstallDir;
+        }
+
+        public Duration getStartupTimeout() {
+            return startupTimeout;
+        }
+
+        public void setStartupTimeout(Duration startupTimeout) {
+            this.startupTimeout = startupTimeout;
         }
     }
 

@@ -1,5 +1,7 @@
 pluginManagement {
     includeBuild("build-logic")
+    // The Gradle plugin, applied from source by the example.
+    includeBuild("build-plugins")
 }
 
 plugins {
