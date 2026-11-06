@@ -136,6 +136,35 @@ jobs:
       - name: Build examples/consumer like an outside project and run it
         run: scripts/consumer-test.sh "$RUNNER_TEMP/consumer"
 
+  windows:
+    name: Windows (build plugins, Java, consumer project)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build plugins (Node.js zip download, npm.cmd, Gradle 7.6)
+        run: ./gradlew -p build-plugins build "-PtestGradle7JavaHome=$JAVA_HOME_17_X64"
+      - name: Java modules and example tests
+        run: ./gradlew build -PmustacheReact.skipFrontend
+      - name: Consumer project
+        run: scripts/consumer-test.sh "$RUNNER_TEMP/consumer"
+
   js:
     name: JS packages
     runs-on: ubuntu-latest

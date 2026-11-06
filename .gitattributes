@@ -1,0 +1,6 @@
+# LF everywhere, on every OS: shell scripts and gradlew break with CRLF, and tests compare generated text.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.jar binary
+*.png binary
