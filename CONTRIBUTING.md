@@ -33,7 +33,32 @@ CI는 아래 세 조합을 모두 실행합니다.
 
 `-PtestJavaVersion`은 Gradle toolchain으로 해당 JDK를 찾습니다. 로컬에 없으면 foojay를 통해 자동으로 내려받습니다.
 
-예제 앱은 빌드할 때 프론트(`pnpm`)도 함께 빌드합니다. Node가 없는 환경이나 Java만 확인할 때는 `-PskipFrontend`를 붙입니다. 예제 테스트는 고정된 테스트용 manifest를 쓰므로 프론트 빌드 없이도 통과합니다.
+예제 앱은 빌드할 때 프론트(`pnpm`)도 함께 빌드합니다. Node가 없는 환경이나 Java만 확인할 때는 `-PmustacheReact.skipFrontend`를 붙입니다. 예제 테스트는 고정된 테스트용 manifest를 쓰므로 프론트 빌드 없이도 통과합니다.
+
+### 빌드 플러그인
+
+`build-plugins/`는 별도 Gradle 빌드입니다(빌드 도구, Gradle 플러그인, Maven 플러그인).
+
+```bash
+./gradlew -p build-plugins build -PtestGradle7JavaHome=/path/to/jdk17
+```
+
+- Gradle 플러그인 테스트는 TestKit으로 실제 Gradle 빌드를 실행합니다.
+- `-PtestGradle7JavaHome`을 주면 Gradle 7.6.4 호환성 테스트도 실행합니다. Gradle 7.6은 Java 21에서 돌지 않으므로 JDK 8~17을 지정합니다.
+- 플러그인 코드는 Gradle 7에 있는 API만 씁니다.
+- 태스크 실행 중에는 `Project`를 참조하지 않습니다(설정 캐시 호환).
+
+### Maven 예제
+
+`examples/basic/pom.xml`은 Gradle 예제와 같은 소스를 빌드합니다. 먼저 mustache-react를 로컬 Maven 저장소에 배포한 뒤 빌드합니다.
+
+```bash
+./gradlew publishToMavenLocal && ./gradlew -p build-plugins publishToMavenLocal
+```
+
+```bash
+cd examples/basic && mvn package -Dspring-boot.version=4.1.2 -Dmaven.compiler.release=17
+```
 
 ### 생성된 TS 타입
 

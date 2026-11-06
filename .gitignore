@@ -19,3 +19,6 @@ bin/
 
 # Node.js downloaded by the mustache-react build plugins
 .mustache-react/
+
+# Maven
+target/

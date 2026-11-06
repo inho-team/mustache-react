@@ -1,9 +1,10 @@
 // Browser test of development mode: pages load modules from the Vite dev server, a component edit is applied in
 // place by hot module replacement (React state survives), and a Mustache template edit reloads the page.
 //
-//   pnpm dev:example                                                                      (terminal 1)
-//   ./gradlew :examples:basic:run --args="--server.port=18080 --spring.profiles.active=dev" (terminal 2)
+//   ./gradlew :examples:basic:run --args="--server.port=18080 --spring.profiles.active=dev"
 //   BASE_URL=http://localhost:18080 pnpm e2e:dev
+//
+// The application starts the Vite dev server itself (mustache-react.dev-server.auto-start).
 //
 // The test edits two source files and restores them when it ends.
 import assert from 'node:assert/strict';

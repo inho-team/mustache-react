@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The same example built with Maven instead of Gradle (sources are shared with build.gradle.kts).
+
+    ./gradlew publishToMavenLocal && ./gradlew -p build-plugins publishToMavenLocal   (mustache-react from source)
+    pnpm install && pnpm -r build                                                       (workspace packages)
+    mvn package
+    mvn package -Dspring-boot.version=4.1.2 -Dmaven.compiler.release=17
+    mvn spring-boot:run -Dspring-boot.run.profiles=dev                                  (Vite dev server with HMR)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>run.iknow.examples</groupId>
+  <artifactId>basic</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>mustache-react example (Maven)</name>
+
+  <properties>
+    <spring-boot.version>2.7.18</spring-boot.version>
+    <mustache-react.version>0.1.0-SNAPSHOT</mustache-react.version>
+    <maven.compiler.release>8</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>run.iknow</groupId>
+      <artifactId>mustache-react-spring-boot-starter</artifactId>
+      <version>${mustache-react.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Generates src/main/frontend/generated/types.ts from the @ReactPage DTOs. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.16.0</version>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>run.iknow</groupId>
+              <artifactId>mustache-react-processor</artifactId>
+              <version>${mustache-react.version}</version>
+            </path>
+          </annotationProcessorPaths>
+          <compilerArgs>
+            <arg>-Amustachereact.typesFile=${project.basedir}/src/main/frontend/generated/types.ts</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <!-- Builds src/main/frontend into the jar. -->
+      <plugin>
+        <groupId>run.iknow</groupId>
+        <artifactId>mustache-react-maven-plugin</artifactId>
+        <version>${mustache-react.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- Only inside the mustache-react repository: the frontend belongs to the pnpm workspace, installed at the
+               root. A normal application leaves both at their defaults (download Node.js, install). -->
+          <install>false</install>
+          <nodeDownload>false</nodeDownload>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

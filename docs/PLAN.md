@@ -1,6 +1,6 @@
 # mustache-react 설계 계획
 
-> 상태: v0.5 · M3 완료 · 공개 오픈소스 (Apache-2.0)
+> 상태: v0.6 · M4 완료 · 공개 오픈소스 (Apache-2.0)
 
 ## 1. 한 줄 정의
 
@@ -191,6 +191,10 @@ mustache-react:
   dev-server:
     enabled: false             # true: Vite dev server에서 모듈을 받음 (개발 프로파일용)
     url: http://localhost:5173
+    auto-start: true           # 앱과 함께 dev server를 실행/종료
+    node: ""                   # 기본: .mustache-react/node의 최신 버전, 없으면 PATH의 node
+    node-install-dir: .mustache-react/node
+    startup-timeout: 30s
   template:
     react-name: react
     helpers-name: mr
@@ -226,8 +230,8 @@ src/main/frontend/
 
 - `@mustache-react/vite-plugin`이 클라이언트 엔트리를 자동으로 생성한다. 사용자가 `main.tsx`를 작성할 필요가 없다.
 - 페이지 파일은 lazy chunk로 분리한다. 서버는 manifest를 보고 현재 페이지의 chunk를 `modulepreload`로 미리 받게 한다.
-- 빌드 결과는 `build/mustache-react/static/mustache-react/`(Gradle 기준)에 생성되고, 리소스에 포함되어 `/mustache-react/**` 경로로 서빙된다.
-- M4 전까지는 사용자가 `src/main/frontend`에 `package.json`과 `vite.config.ts`를 직접 둔다(예제 참고). M4부터는 빌드 플러그인이 이 설정을 대신한다.
+- 빌드 결과는 Gradle은 `build/mustache-react/resources/`, Maven은 `target/mustache-react/`에 생성된다. 이 디렉터리가 리소스에 추가되므로 jar의 `static/mustache-react/`에 들어가고, `/mustache-react/**` 경로로 서빙된다.
+- 사용자가 두는 파일은 `package.json`(의존성 목록)과 컴포넌트뿐이다. `vite.config.ts`는 필요 없다. 없으면 `mustache-react-vite` CLI가 `@vitejs/plugin-react`와 `mustacheReact()`로 실행한다. 직접 둔 설정 파일이 있으면 그 파일을 쓴다.
 
 ## 7. 기술적 제약과 대응
 
@@ -262,12 +266,14 @@ Java 8의 Nashorn은 최신 React SSR에 쓸 수 없고, GraalJS는 Java 17 이�
 
 **annotation processor** `mustache-react-processor`를 쓴다. Java 8에서 동작하고, Gradle/Maven 어느 쪽이든 javac 단계에서 실행된다.
 
-```kotlin
-// build.gradle.kts (M4부터는 빌드 플러그인이 대신 설정)
-dependencies { annotationProcessor("run.iknow:mustache-react-processor") }
-tasks.compileJava {
-    options.compilerArgs.add("-Amustachereact.typesFile=${projectDir}/src/main/frontend/generated/types.ts")
-}
+- **Gradle:** 플러그인이 processor 의존성과 `typesFile` 옵션을 자동으로 추가한다(`mustacheReact { types = false }`로 끈다).
+- **Maven:** `maven-compiler-plugin`에 다음을 추가한다.
+
+```xml
+<annotationProcessorPaths>
+  <path><groupId>run.iknow</groupId><artifactId>mustache-react-processor</artifactId><version>…</version></path>
+</annotationProcessorPaths>
+<compilerArgs><arg>-Amustachereact.typesFile=${project.basedir}/src/main/frontend/generated/types.ts</arg></compilerArgs>
 ```
 
 **생성 대상과 결과물**
@@ -302,6 +308,55 @@ Spring Boot 기본 Jackson 설정이 실제로 내보내는 JSON을 기준으로
 - 파일 위치는 `-Amustachereact.typesFile` 옵션으로 정한다. 내용이 바뀔 때만 다시 쓰므로 Vite 감시가 불필요하게 반응하지 않는다.
 - 생성된 파일은 커밋한다. CI는 Java 빌드 후 이 파일이 커밋본과 다르면 실패한다. 덕분에 DTO를 바꾸면 TS 쪽 타입 에러로 바로 드러난다.
 
+### 7-4. Gradle과 Maven 지원
+
+**사용자 프로젝트 설정**
+
+```kotlin
+// build.gradle.kts
+plugins { id("run.iknow.mustache-react") version "…" }
+```
+```xml
+<!-- pom.xml -->
+<plugin>
+  <groupId>run.iknow</groupId><artifactId>mustache-react-maven-plugin</artifactId><version>…</version>
+  <executions><execution><goals><goal>build</goal></goals></execution></executions>
+</plugin>
+```
+
+**두 플러그인이 하는 일** (공통 라이브러리 `mustache-react-build-tools` 사용)
+
+1. Node.js를 프로젝트의 `.mustache-react/node`에 내려받는다.
+   - 기본 버전은 24 LTS이고, `nodeVersion`으로 바꿀 수 있다. `nodeDownload=false`면 `PATH`의 Node를 쓴다.
+   - 내려받은 파일은 릴리스의 `SHASUMS256.txt`로 검증한다.
+   - 압축 해제는 Java로 직접 한다. 경로가 압축 대상 디렉터리 밖으로 나가는 항목은 거부한다.
+2. 의존성을 설치한다.
+   - 패키지 매니저는 `package.json`의 `packageManager` 필드나 lock 파일로 정한다. 기본값은 npm이다.
+   - lock 파일이 있으면 `npm ci`나 `--frozen-lockfile`로 설치한다.
+   - `packageManager`에 pnpm이나 yarn 버전이 적혀 있으면 `npm exec`로 정확히 그 버전을 쓴다.
+   - `package.json`과 lock 파일이 바뀌지 않았으면 다시 설치하지 않는다. Gradle은 자체 up-to-date 검사로, Maven은 `node_modules`에 남긴 해시로 판단한다.
+3. `mustache-react-vite build`로 빌드하고, 결과 디렉터리를 리소스에 추가한다.
+4. 타입 생성: Gradle은 processor와 옵션을 자동으로 연결한다. Maven은 위 7-3의 설정을 직접 추가한다.
+5. Gradle에서는 `bootRun`/`run`에 프론트 디렉터리와 Node 위치를 시스템 속성으로 전달한다(개발 서버 자동 실행용).
+
+**공통 동작**
+
+- Java만 확인할 때는 Gradle은 `-PmustacheReact.skipFrontend`, Maven은 `-DmustacheReact.skipFrontend`로 프론트 빌드를 건너뛴다.
+- 두 플러그인 모두 Java 8 바이트코드로 빌드한다.
+
+**Gradle 플러그인 호환성**
+
+- Gradle 7.6과 8.x에서 동작한다. Gradle 7에 있는 API만 쓴다.
+- 설정 캐시와 빌드 캐시를 지원한다. TestKit 테스트로 확인한다.
+- `mustacheReactBuild` 태스크는 `@CacheableTask`이다.
+
+**라이브러리 저장소의 구성**
+
+- 라이브러리 저장소는 Gradle(Kotlin DSL)로 빌드한다.
+- 빌드 플러그인은 별도 Gradle 빌드(`build-plugins/`)로 둔다.
+- 메인 빌드는 `pluginManagement.includeBuild`로 이 빌드를 포함한다. 그래서 예제가 소스 상태의 플러그인을 그대로 적용할 수 있다.
+- Maven 플러그인의 `plugin.xml`은 `de.benediktritter.maven-plugin-development`로 생성한다.
+
 ### 7-5. 개발 모드 (Vite dev server)
 
 ```properties
@@ -320,17 +375,11 @@ spring.mustache.servlet.cache=false
   - `src/main/resources/templates/**/*.mustache`가 바뀌면 브라우저를 새로고침한다.
 - 컴포넌트 수정은 HMR로 그 자리에서 반영되고, React 상태도 유지된다.
 - 개발 모드에서는 island 마운트가 실패하면 그 자리에 오류 박스를 보여 준다.
-- M4에서는 빌드 플러그인이 Vite dev server를 함께 띄우게 한다(`bootRun` 하나로 실행).
-
-### 7-4. Gradle과 Maven 지원
-
-- 라이브러리 저장소 자체는 Gradle(Kotlin DSL)로 빌드한다.
-- 사용자 프로젝트용 플러그인 `mustache-react-gradle-plugin`과 `mustache-react-maven-plugin`은 같은 일을 한다.
-  1. Node와 pnpm을 프로젝트 로컬에 설치한다.
-  2. 내장 Vite 설정으로 client 번들과 ssr 번들을 빌드한다.
-  3. 결과물을 `static/`과 `META-INF/mustache-react/`에 배치한다.
-  4. 개발 모드에서는 Vite dev server를 띄우고 Spring이 그 서버를 바라보게 한다(HMR).
-- Gradle 플러그인은 Boot 2.7 사용자가 많이 쓰는 Gradle 7.x에서도 동작해야 한다.
+- **자동 실행:** 개발 모드에서는 Spring이 앱과 함께 Vite dev server를 띄우고, 앱이 종료될 때 함께 종료한다(`ViteDevServerProcess`).
+  - Gradle `bootRun`, Maven `spring-boot:run`, IDE 실행 모두 같은 방식으로 동작한다.
+  - Node는 빌드 플러그인이 받아 둔 `.mustache-react/node`의 최신 버전을 쓰고, 없으면 `PATH`의 `node`를 쓴다.
+  - 포트에 이미 서버가 떠 있으면 새로 띄우지 않고 그 서버를 쓴다.
+  - `mustache-react.dev-server.auto-start=false`로 끌 수 있다.
 
 ## 8. 저장소 구조
 
@@ -345,15 +394,16 @@ mustache-react/
 │   ├── mustache-react-processor               # DTO → TS 타입 (annotation processor)
 │   ├── mustache-react-ssr-node                # (M5)
 │   └── mustache-react-ssr-graaljs             # (M7)
-├── build-plugins/                             # (M4)
-│   ├── mustache-react-gradle-plugin
-│   └── mustache-react-maven-plugin
+├── build-plugins/                             # 별도 Gradle 빌드 (메인 빌드가 includeBuild)
+│   ├── mustache-react-build-tools             # Node 설치, 패키지 매니저, 프론트 빌드 실행 (공통)
+│   ├── mustache-react-gradle-plugin           # id("run.iknow.mustache-react")
+│   └── mustache-react-maven-plugin            # mustache-react:build
 ├── js/                                        # pnpm workspace, TypeScript
 │   ├── client      → @mustache-react/client       # 브라우저 런타임, useServerContext, useSpringForm
 │   ├── server      → @mustache-react/server       # SSR 렌더 엔트리
-│   └── vite-plugin → @mustache-react/vite-plugin  # 빌드 플러그인 내부에서 사용
+│   └── vite-plugin → @mustache-react/vite-plugin  # Vite 플러그인 + mustache-react-vite CLI (build|dev)
 ├── examples/
-│   └── basic                                  # Boot 버전을 바꿔 가며 실행하는 예제
+│   └── basic                                  # 같은 소스를 Gradle(build.gradle.kts)과 Maven(pom.xml)으로 빌드
 └── docs/
 ```
 
@@ -365,7 +415,7 @@ mustache-react/
 | ✅ **M1. `@ReactPage` CSR MVP** | manifest 리졸버, 레이아웃, `@ReactPage` 반환값 처리, content negotiation, client mount | 예제의 `/orders`가 브라우저에서는 React, curl에서는 JSON으로 응답 |
 | ✅ **M2. Mustache island** | `{{#react}}` 람다, `mr.head`/`mr.scripts`, 경로 해석 | 기존 Mustache 화면에 island 2개 삽입 |
 | ✅ **M3. 타입 생성과 개발 경험** | annotation processor, Vite dev server와 HMR | DTO를 수정하면 TS 에러로 드러나고, 코드 수정이 즉시 반영 |
-| **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
+| ✅ **M4. 빌드 플러그인** | Gradle 플러그인, Maven 플러그인, Node 자동 설치 | npm을 직접 실행하지 않고 `bootJar`/`package`만으로 배포 가능 |
 | **M5. Spring 연동과 SSR** | 서버 컨텍스트, `useSpringForm` + `@Valid`, SsrEngine SPI, ssr-node, fallback | 로그인과 폼 예제, SSR hydrate |
 | **M6. 첫 릴리스** | Maven Central, npm 배포 자동화, 문서 사이트 | `0.1.0` 릴리스 |
 | **M7. 확장** | GraalJS SSR, SPA 방식 페이지 이동, WebFlux 검토 | — |
