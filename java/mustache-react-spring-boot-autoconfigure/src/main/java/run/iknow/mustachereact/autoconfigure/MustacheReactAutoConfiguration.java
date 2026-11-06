@@ -1,5 +1,7 @@
 package run.iknow.mustachereact.autoconfigure;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -13,6 +15,10 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.samskivert.mustache.Mustache;
 
+import run.iknow.mustachereact.core.ViteDevServer;
+import run.iknow.mustachereact.spring.DevServerFrontendAssets;
+import run.iknow.mustachereact.spring.FrontendAssets;
+import run.iknow.mustachereact.spring.ManifestFrontendAssets;
 import run.iknow.mustachereact.spring.MustacheReactHelpers;
 import run.iknow.mustachereact.spring.MustacheReactModelAdvice;
 import run.iknow.mustachereact.spring.PropsSerializer;
@@ -43,6 +49,8 @@ import run.iknow.mustachereact.spring.ViteManifestSource;
 @EnableConfigurationProperties(MustacheReactProperties.class)
 public class MustacheReactAutoConfiguration {
 
+    private static final Log LOGGER = LogFactory.getLog(MustacheReactAutoConfiguration.class);
+
     /**
      * Renders {@code @ReactPage} pages. Uses the application's Mustache compiler when there is one, so a custom
      * layout can include the application's partials.
@@ -53,12 +61,29 @@ public class MustacheReactAutoConfiguration {
         return new ViteManifestSource(resourceLoader, properties.getManifestLocation());
     }
 
+    /**
+     * Asset tags: from the Vite dev server when {@code mustache-react.dev-server.enabled=true}, otherwise from the
+     * built files listed in the manifest.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public FrontendAssets mustacheReactFrontendAssets(MustacheReactProperties properties,
+            ObjectProvider<ViteManifestSource> manifest) {
+        MustacheReactProperties.DevServer dev = properties.getDevServer();
+        if (dev.isEnabled()) {
+            String url = dev.getUrl().replaceAll("/+$", "") + "/" + properties.getPublicPath().replaceAll("^/+", "");
+            LOGGER.info("mustache-react: loading the frontend from the Vite dev server at " + url);
+            return new DevServerFrontendAssets(new ViteDevServer(url));
+        }
+        return new ManifestFrontendAssets(manifest.getObject(), properties.getPublicPath());
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public ReactPageRenderer reactPageRenderer(ResourceLoader resourceLoader, MustacheReactProperties properties,
-            ObjectProvider<Mustache.Compiler> compiler, ViteManifestSource manifest) {
-        return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler), manifest,
-                properties.getLayout(), properties.getPublicPath(), properties.isContentNegotiation());
+            ObjectProvider<Mustache.Compiler> compiler, FrontendAssets assets) {
+        return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler), assets,
+                properties.getLayout(), properties.isContentNegotiation());
     }
 
     /**
@@ -78,8 +103,8 @@ public class MustacheReactAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public MustacheReactHelpers mustacheReactHelpers(ViteManifestSource manifest, MustacheReactProperties properties) {
-        return new MustacheReactHelpers(manifest, properties.getPublicPath());
+    public MustacheReactHelpers mustacheReactHelpers(FrontendAssets assets) {
+        return new MustacheReactHelpers(assets);
     }
 
     /**

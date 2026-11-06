@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { OrderStatus } from '../types';
+import type { OrderStatus } from '../generated/types';
 
 const LABELS: Record<OrderStatus, string> = { PAID: '결제 완료', SHIPPED: '배송 중', CANCELLED: '취소' };
 

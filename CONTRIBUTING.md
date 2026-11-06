@@ -35,6 +35,10 @@ CI는 아래 세 조합을 모두 실행합니다.
 
 예제 앱은 빌드할 때 프론트(`pnpm`)도 함께 빌드합니다. Node가 없는 환경이나 Java만 확인할 때는 `-PskipFrontend`를 붙입니다. 예제 테스트는 고정된 테스트용 manifest를 쓰므로 프론트 빌드 없이도 통과합니다.
 
+### 생성된 TS 타입
+
+`examples/basic/src/main/frontend/generated/types.ts`는 Java 빌드 때 `mustache-react-processor`가 만듭니다. 예제의 DTO를 바꿨다면 `./gradlew build`를 실행하고 생성된 파일도 함께 커밋해 주세요. 커밋본과 다르면 CI가 실패합니다.
+
 ## 코드 규칙
 
 ### Java

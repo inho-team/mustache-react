@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import type { OrderListResponse } from '../../types';
+import type { PageProps } from '../../generated/types';
 
-export default function OrderList({ orders, total }: OrderListResponse) {
+// Props come from the Java method annotated @ReactPage("orders/OrderList"); see generated/types.ts.
+export default function OrderList({ orders, total }: PageProps<'orders/OrderList'>) {
   const [query, setQuery] = useState('');
   const visible = orders.filter((order) => order.customer.toLowerCase().includes(query.toLowerCase()));
 

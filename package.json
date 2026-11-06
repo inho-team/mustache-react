@@ -10,7 +10,9 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
-    "e2e": "node examples/basic/e2e/smoke.mjs"
+    "e2e": "node examples/basic/e2e/smoke.mjs",
+    "dev:example": "pnpm --filter \"@mustache-react-examples/basic^...\" run build && pnpm --filter @mustache-react-examples/basic run dev",
+    "e2e:dev": "node examples/basic/e2e/dev.mjs"
   },
   "devDependencies": {
     "playwright": "1.63.0"
