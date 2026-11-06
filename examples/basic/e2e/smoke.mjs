@@ -84,6 +84,17 @@ try {
   assert.equal(await page.getByTestId('summary').textContent(), '5 / 5건');
   assert.equal(await page.getByTestId('user').textContent(), 'kim님');
 
+  // Language switch (mustache-react.i18n.param=lang): the link reloads the page in English, a cookie keeps it.
+  await page.getByTestId('lang-en').click();
+  await page.getByRole('heading', { name: 'Orders' }).waitFor();
+  assert.equal(await page.title(), 'Orders');
+  assert.equal(await page.getByTestId('summary').textContent(), '5 of 5');
+  await page.goto(`${baseUrl}/dashboard`);
+  await page.getByRole('heading', { name: 'Dashboard' }).waitFor();
+  assert.equal(await page.locator('.badge').nth(1).textContent(), 'Shipped');
+  await page.goto(`${baseUrl}/orders?lang=ko`);
+  await page.getByRole('heading', { name: '주문 목록' }).waitFor();
+
   assert.deepEqual(errors, []);
 
   const api = await fetch(`${baseUrl}/orders`, { headers: { Accept: 'application/json' } });

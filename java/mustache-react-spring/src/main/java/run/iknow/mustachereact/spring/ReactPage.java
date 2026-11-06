@@ -37,7 +37,9 @@ public @interface ReactPage {
     String value();
 
     /**
-     * Page title. Empty means the layout default.
+     * Page title, or a message key: when the application's {@code MessageSource} has a message with this code
+     * (e.g. {@code "orders.title"} in {@code messages.properties}), the title is that message in the request locale.
+     * Empty means the layout default.
      *
      * @return the page title
      */

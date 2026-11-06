@@ -21,6 +21,7 @@ export default defineConfig({
           { text: '@ReactPage 페이지', link: '/guide/pages' },
           { text: 'Mustache island', link: '/guide/islands' },
           { text: '폼과 서버 컨텍스트', link: '/guide/forms' },
+          { text: '다국어 (i18n)', link: '/guide/i18n' },
           { text: 'TypeScript 타입 생성', link: '/guide/types' },
           { text: '개발 모드', link: '/guide/development' },
           { text: '서버 렌더링 (SSR)', link: '/guide/ssr' },

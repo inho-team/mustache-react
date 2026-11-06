@@ -60,6 +60,15 @@ public class ReactPageReturnValueHandler implements HandlerMethodReturnValueHand
         this.messageSource = messageSource;
     }
 
+    /** The title as a message key when the {@link MessageSource} knows it, else the title itself. */
+    private String title(String title, Locale locale) {
+        MessageSource messages = messageSource.getIfAvailable();
+        if (messages == null || title.isEmpty()) {
+            return title;
+        }
+        return messages.getMessage(title, null, title, locale);
+    }
+
     /**
      * Whether the given handler is Spring MVC's handler for {@link ResponseEntity} return values.
      */
@@ -118,7 +127,8 @@ public class ReactPageReturnValueHandler implements HandlerMethodReturnValueHand
         ReactPage page = returnType.getMethodAnnotation(ReactPage.class);
         Map<String, Object> extraContext = errors == null ? null
                 : Collections.<String, Object>singletonMap("errors", errors);
-        String html = pages.render(page.value(), page.title(), propsSerializer.serialize(returnValue), extraContext, locale);
+        String html = pages.render(page.value(), title(page.title(), locale), propsSerializer.serialize(returnValue),
+                extraContext, locale);
         ResponseEntity<String> response = response(status, entityHeaders).contentType(TEXT_HTML_UTF8).body(html);
         entityHandler.handleReturnValue(response, HTML_RETURN_TYPE, mavContainer, webRequest);
     }

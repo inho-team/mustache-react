@@ -29,7 +29,7 @@ public class OrderController {
         this.orders = orders;
     }
 
-    @ReactPage(value = "orders/OrderList", title = "주문 목록")
+    @ReactPage(value = "orders/OrderList", title = "orders.title")
     @GetMapping("/orders")
     public OrderListResponse list() {
         return new OrderListResponse(orders.findAll());
@@ -38,7 +38,7 @@ public class OrderController {
     /**
      * A ResponseEntity sets the status and headers of the page (and of the JSON response); its body is the props.
      */
-    @ReactPage(value = "orders/OrderDetail", title = "주문 상세")
+    @ReactPage(value = "orders/OrderDetail", title = "orders.detail.title")
     @GetMapping("/orders/{id}")
     public ResponseEntity<OrderDetailPage> detail(@PathVariable("id") long id) {
         Optional<Order> order = orders.findById(id);
@@ -53,7 +53,7 @@ public class OrderController {
         binder.addValidators(new OrderFormValidator());
     }
 
-    @ReactPage(value = "orders/OrderForm", title = "주문 등록")
+    @ReactPage(value = "orders/OrderForm", title = "orders.new")
     @GetMapping("/orders/new")
     public OrderFormPage newOrder() {
         return new OrderFormPage(new OrderForm());
@@ -63,7 +63,7 @@ public class OrderController {
      * Spring MVC form handling as usual: on validation errors, show the form again (useSpringForm displays the
      * errors next to the fields); otherwise save and redirect.
      */
-    @ReactPage(value = "orders/OrderForm", title = "주문 등록")
+    @ReactPage(value = "orders/OrderForm", title = "orders.new")
     @PostMapping("/orders/new")
     public Object create(@Validated @RequestBody OrderForm form, BindingResult result) {
         if (result.hasErrors()) {

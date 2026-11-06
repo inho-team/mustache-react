@@ -1,21 +1,22 @@
 <!doctype html>
-<html lang="ko">
+<html lang="{{mr.lang}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{title}}</title>
+  <title>{{#mr.t}}dashboard.title{{/mr.t}}</title>
   {{{mr.head}}}
 </head>
 <body>
 <main class="page">
-  <h1>{{title}}</h1>
-  <p>이 화면은 Mustache 템플릿입니다. 차트와 상태 배지만 React 컴포넌트입니다.</p>
+  <h1>{{#mr.t}}dashboard.title{{/mr.t}}</h1>
+  {{! 메시지는 messages.properties / messages_en.properties 에서 }}
+  <p>{{#mr.t}}dashboard.intro{{/mr.t}}</p>
 
   {{! islands/OrderChart.tsx 에 model의 orders, currency 를 props로 전달 }}
   {{#react}}OrderChart orders currency{{/react}}
 
   <table>
-    <thead><tr><th>번호</th><th>고객</th><th>상태</th></tr></thead>
+    <thead><tr><th>{{#mr.t}}orders.column.id{{/mr.t}}</th><th>{{#mr.t}}orders.column.customer{{/mr.t}}</th><th>{{#mr.t}}orders.column.status{{/mr.t}}</th></tr></thead>
     <tbody>
     {{#orders}}
       <tr>

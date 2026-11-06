@@ -16,7 +16,8 @@ await springFetch('/api/orders', { method: 'POST', body: JSON.stringify(order) }
 | `locale` | 요청 locale |
 | `csrf` | `{headerName, parameterName, token}` (Spring Security) |
 | `user` | `{name, authorities}`, 비로그인은 `null` (Spring Security) |
-| `messages` | `mustache-react.context.messages`에 나열한 키의 메시지 |
+| `messages` | `mustache-react.context.messages`에 나열한 키(`orders.*` 패턴 가능)의 메시지. [다국어](./i18n) 참고 |
+| `i18n` | `{param, locales}`: 언어 전환 설정 (`mustache-react.i18n.*`) |
 | `errors` | 직전 폼 제출의 검증 에러 |
 
 항목을 더하려면 `ServerContextContributor` 빈을 등록합니다. 페이지에 그대로 쓰이므로 비밀 값은 넣지 않습니다.

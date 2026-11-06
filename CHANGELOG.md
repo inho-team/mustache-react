@@ -13,6 +13,10 @@ First release: 0.1.0.
 - `{{#react}}Name a b x=a.b{{/react}}` places React islands in Mustache views; `{{{mr.head}}}` / `{{{mr.scripts}}}`.
 - Server context in every page: locale, CSRF token and signed-in user (Spring Security 5.7–7), chosen messages,
   and `ServerContextContributor` beans.
+- i18n: messages from `messages.properties` in React (`useMessages().t('orders.count', n)`, MessageFormat-style
+  arguments), in Mustache (`{{#mr.t}}key arg{{/mr.t}}`, `{{mr.lang}}`) and as `@ReactPage` titles; key patterns
+  such as `orders.*`; `?lang=en` switching kept in a cookie (`mustache-react.i18n.*`); Mustache views always get
+  `charset=UTF-8`, so Korean pages are no longer sent as ISO-8859-1.
 - Forms: `@Valid` errors (400 with field errors for JSON requests) and `return "redirect:/path"`.
 - Server-side rendering (`mustache-react.ssr=auto|always`) with a Node.js sidecar running the bundle from the jar,
   or the Vite dev server in development; falls back to browser rendering per page or island, and restarts the

@@ -1,3 +1,4 @@
+import { useMessages } from '@mustache-react/client';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Order } from '../generated/types';
 
@@ -8,6 +9,7 @@ interface Props {
 
 /** Any React library works in an island; this one uses recharts. */
 export default function OrderChart({ orders, currency }: Props) {
+  const { t } = useMessages();
   const data = orders
     .filter((order) => order.status !== 'CANCELLED')
     .map((order) => ({ name: String(order.id), amount: order.amount }));
@@ -23,7 +25,7 @@ export default function OrderChart({ orders, currency }: Props) {
           <Bar dataKey="amount" fill="#2f6feb" isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
-      <figcaption>주문 금액 (취소 제외)</figcaption>
+      <figcaption>{t('orders.chart.caption')}</figcaption>
     </figure>
   );
 }

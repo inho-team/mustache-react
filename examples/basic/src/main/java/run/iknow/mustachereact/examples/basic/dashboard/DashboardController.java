@@ -21,7 +21,6 @@ public class DashboardController {
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        model.addAttribute("title", "대시보드");
         model.addAttribute("orders", orders.findAll());
         model.addAttribute("currency", "원");
         return "dashboard";

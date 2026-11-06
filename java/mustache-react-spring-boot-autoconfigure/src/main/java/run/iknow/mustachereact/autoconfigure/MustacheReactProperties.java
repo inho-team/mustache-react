@@ -3,6 +3,7 @@ package run.iknow.mustachereact.autoconfigure;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -53,6 +54,9 @@ public class MustacheReactProperties {
 
     /** The Node.js server that renders pages when {@code mustache-react.ssr} is {@code auto} or {@code always}. */
     private final SsrServer ssrServer = new SsrServer();
+
+    /** Language switching and the languages on offer. */
+    private final I18n i18n = new I18n();
 
     public boolean isEnabled() {
         return enabled;
@@ -122,6 +126,10 @@ public class MustacheReactProperties {
         return context;
     }
 
+    public I18n getI18n() {
+        return i18n;
+    }
+
     public SsrServer getSsrServer() {
         return ssrServer;
     }
@@ -166,6 +174,71 @@ public class MustacheReactProperties {
         }
     }
 
+    /** Settings under {@code mustache-react.i18n.*}. */
+    public static class I18n {
+
+        /**
+         * Request parameter that switches the language, e.g. {@code lang} for {@code ?lang=en}. The choice is kept
+         * in a cookie. Unset: the language follows the {@code Accept-Language} header (Spring Boot's default).
+         */
+        private String param;
+
+        /** Languages the application offers, e.g. {@code ko,en}; written into the page for a language menu. */
+        private List<Locale> locales = new ArrayList<>();
+
+        /**
+         * Language before the user picks one. Unset: the {@code Accept-Language} header. Only used with
+         * {@code param}.
+         */
+        private Locale defaultLocale;
+
+        /** Cookie that keeps the chosen language. */
+        private String cookieName = "locale";
+
+        /** How long the cookie keeps the chosen language. */
+        private Duration cookieMaxAge = Duration.ofDays(365);
+
+        public String getParam() {
+            return param;
+        }
+
+        public void setParam(String param) {
+            this.param = param;
+        }
+
+        public List<Locale> getLocales() {
+            return locales;
+        }
+
+        public void setLocales(List<Locale> locales) {
+            this.locales = locales;
+        }
+
+        public Locale getDefaultLocale() {
+            return defaultLocale;
+        }
+
+        public void setDefaultLocale(Locale defaultLocale) {
+            this.defaultLocale = defaultLocale;
+        }
+
+        public String getCookieName() {
+            return cookieName;
+        }
+
+        public void setCookieName(String cookieName) {
+            this.cookieName = cookieName;
+        }
+
+        public Duration getCookieMaxAge() {
+            return cookieMaxAge;
+        }
+
+        public void setCookieMaxAge(Duration cookieMaxAge) {
+            this.cookieMaxAge = cookieMaxAge;
+        }
+    }
+
     /** Settings under {@code mustache-react.context.*}. */
     public static class Context {
 
@@ -175,7 +248,10 @@ public class MustacheReactProperties {
         /** Whether to expose the signed-in user's name and authorities (with Spring Security). */
         private boolean user = true;
 
-        /** Message keys to expose in the request locale. Only listed keys are written into the page. */
+        /**
+         * Message keys to expose in the request locale: keys ({@code app.name}), prefixes ({@code orders.*}) or
+         * {@code *} for all. Only these are written into the page.
+         */
         private List<String> messages = new ArrayList<>();
 
         public boolean isCsrf() {

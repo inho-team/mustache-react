@@ -1,28 +1,30 @@
+import { useMessages } from '@mustache-react/client';
 import Header from '../../components/Header';
 import type { PageProps } from '../../generated/types';
 
 /** The controller answers 404 with order = null when there is no such order. */
 export default function OrderDetail({ id, order }: PageProps<'orders/OrderDetail'>) {
+  const { t } = useMessages();
   return (
     <main className="page narrow">
       <Header />
-      <h1>주문 #{id}</h1>
+      <h1>{t('orders.detail.heading', String(id))}</h1>
       {order ? (
         <dl data-testid="order">
-          <dt>고객</dt>
+          <dt>{t('orders.column.customer')}</dt>
           <dd>{order.customer}</dd>
-          <dt>금액</dt>
-          <dd>{order.amount.toLocaleString('ko-KR')}원</dd>
-          <dt>상태</dt>
-          <dd>{order.status}</dd>
-          <dt>주문일</dt>
+          <dt>{t('orders.column.amount')}</dt>
+          <dd>{t('orders.amount', order.amount)}</dd>
+          <dt>{t('orders.column.status')}</dt>
+          <dd>{t(`orders.status.${order.status}`)}</dd>
+          <dt>{t('orders.column.orderedAt')}</dt>
           <dd>{order.orderedAt}</dd>
         </dl>
       ) : (
-        <p className="error">주문을 찾을 수 없습니다.</p>
+        <p className="error">{t('orders.detail.notFound')}</p>
       )}
       <p>
-        <a href="/orders">목록으로</a>
+        <a href="/orders">{t('orders.detail.back')}</a>
       </p>
     </main>
   );

@@ -1,1 +1,2 @@
 run.iknow.mustachereact.autoconfigure.MustacheReactAutoConfiguration
+run.iknow.mustachereact.autoconfigure.MustacheReactLocaleAutoConfiguration

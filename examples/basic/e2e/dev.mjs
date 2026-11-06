@@ -39,7 +39,7 @@ try {
   // 2. Editing a component updates it in place: the text typed into the search box is kept.
   await page.getByLabel('고객 검색').fill('이서연');
   await page.evaluate(() => (window.__notReloaded = true));
-  edit(page$, '<h1>주문 목록</h1>', '<h1>주문 목록 (HMR)</h1>');
+  edit(page$, "<h1>{t('orders.title')}</h1>", "<h1>{t('orders.title')} (HMR)</h1>");
   await page.getByRole('heading', { name: '주문 목록 (HMR)' }).waitFor({ timeout: 10_000 });
   assert.equal(await page.getByLabel('고객 검색').inputValue(), '이서연');
   assert.equal(await page.evaluate(() => window.__notReloaded), true);
@@ -47,7 +47,7 @@ try {
   // 3. Editing a Mustache template reloads the page with the new content.
   await page.goto(`${baseUrl}/dashboard`);
   await page.locator('tbody .badge').first().waitFor();
-  edit(template$, '<h1>{{title}}</h1>', '<h1>{{title}} (reloaded)</h1>');
+  edit(template$, '<h1>{{#mr.t}}dashboard.title{{/mr.t}}</h1>', '<h1>{{#mr.t}}dashboard.title{{/mr.t}} (reloaded)</h1>');
   await page.getByRole('heading', { name: '대시보드 (reloaded)' }).waitFor({ timeout: 10_000 });
   await page.locator('tbody .badge').first().waitFor();
 
