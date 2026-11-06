@@ -2,6 +2,7 @@ package run.iknow.mustachereact.spring;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -162,13 +163,26 @@ public class ViteDevServerProcess implements SmartLifecycle {
         environment.put(key, existing == null || existing.isEmpty() ? bin : bin + File.pathSeparator + existing);
     }
 
+    /**
+     * Whether something accepts connections on the port, on any address of the host: "localhost" may be served on
+     * 127.0.0.1 or on ::1 only (Node.js listens on the first address the resolver returns).
+     */
     static boolean isListening(String host, int port) {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(host, port), 200);
-            return true;
+        InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(host);
         } catch (IOException ex) {
             return false;
         }
+        for (InetAddress address : addresses) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(address, port), 200);
+                return true;
+            } catch (IOException ex) {
+                // try the next address
+            }
+        }
+        return false;
     }
 
     @Override

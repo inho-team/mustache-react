@@ -46,13 +46,26 @@ class ViteDevServerProcessTest {
         ViteDevServerProcess server = new ViteDevServerProcess(dir.resolve("frontend").toFile(),
                 URI.create("http://localhost:" + port), "/mustache-react/", "node", null, 10_000);
 
-        server.start();
-        assertThat(server.isRunning()).isTrue();
-        assertThat(ViteDevServerProcess.isListening("localhost", port)).isTrue();
-
-        server.stop();
+        try {
+            server.start();
+            assertThat(server.isRunning()).isTrue();
+            assertThat(ViteDevServerProcess.isListening("localhost", port)).isTrue();
+        } finally {
+            // Always: a node process left behind keeps the test worker's output open and the build never ends.
+            server.stop();
+        }
         assertThat(server.isRunning()).isFalse();
         assertThat(ViteDevServerProcess.isListening("localhost", port)).isFalse();
+    }
+
+    @Test
+    void seesServersOnIpv6OnlyLocalhost() throws Exception {
+        java.net.InetAddress ipv6 = java.net.InetAddress.getByName("::1");
+        try (ServerSocket socket = new ServerSocket(0, 50, ipv6)) {
+            assertThat(ViteDevServerProcess.isListening("localhost", socket.getLocalPort())).isTrue();
+        } catch (java.net.SocketException ex) {
+            org.junit.jupiter.api.Assumptions.assumeTrue(false, "no IPv6 loopback: " + ex.getMessage());
+        }
     }
 
     @Test
