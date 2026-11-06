@@ -151,6 +151,9 @@ public class NodeSsrServer implements SmartLifecycle {
             int port = freePort();
             List<String> command = new ArrayList<>(Arrays.asList(node, script.toString(), "--port", String.valueOf(port)));
             LOGGER.info("mustache-react: starting the SSR server: " + String.join(" ", command));
+            // Clear the old port first: once the new process is alive, getEndpoint() must not hand out the port of
+            // the dead one before the new one listens.
+            endpoint = null;
             Process started = new ProcessBuilder(command).directory(workDir.toFile()).inheritIO().start();
             process = started;
             if (!this.started) {
