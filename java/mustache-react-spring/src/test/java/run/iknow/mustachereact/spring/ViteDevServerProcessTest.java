@@ -55,6 +55,11 @@ class ViteDevServerProcessTest {
             server.stop();
         }
         assertThat(server.isRunning()).isFalse();
+        // Windows releases the socket of a killed process shortly after the process has exited.
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (ViteDevServerProcess.isListening("localhost", port) && System.currentTimeMillis() < deadline) {
+            Thread.sleep(100);
+        }
         assertThat(ViteDevServerProcess.isListening("localhost", port)).isFalse();
     }
 
