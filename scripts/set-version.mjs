@@ -36,3 +36,7 @@ edit('js/client/src/index.ts', (s) => s.replace(/export const VERSION = '[^']*';
 edit('examples/basic/pom.xml', (s) =>
   s.replace(/<mustache-react\.version>[^<]*<\/mustache-react\.version>/, `<mustache-react.version>${version}</mustache-react.version>`),
 );
+edit('examples/consumer/gradle.properties', (s) => s.replace(/^mustacheReactVersion=.*$/m, `mustacheReactVersion=${version}`));
+edit('examples/consumer/src/main/frontend/package.json', (s) =>
+  s.replace(/("@mustache-react\/[a-z-]+": )"[^"]*"/g, `$1"${version}"`),
+);
