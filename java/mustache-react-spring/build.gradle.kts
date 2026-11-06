@@ -11,8 +11,11 @@ dependencies {
     compileOnly(platform(libs.spring.boot.dependencies.min))
     compileOnly("org.springframework:spring-webmvc")
     compileOnly("com.samskivert:jmustache")
+    // Optional: CSRF token and signed-in user in the server context.
+    compileOnly("org.springframework.security:spring-security-web")
 
     testImplementation("org.springframework:spring-web")
     testImplementation("org.springframework:spring-context")
     testImplementation("com.samskivert:jmustache")
+    testImplementation("org.springframework.security:spring-security-web")
 }

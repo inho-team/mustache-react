@@ -1,6 +1,8 @@
 package run.iknow.mustachereact.autoconfigure;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -45,6 +47,9 @@ public class MustacheReactProperties {
 
     /** Loading the frontend from a running Vite dev server, for development. */
     private final DevServer devServer = new DevServer();
+
+    /** What the server context ({@code useServerContext()}) exposes. */
+    private final Context context = new Context();
 
     public boolean isEnabled() {
         return enabled;
@@ -108,6 +113,47 @@ public class MustacheReactProperties {
 
     public DevServer getDevServer() {
         return devServer;
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    /** Settings under {@code mustache-react.context.*}. */
+    public static class Context {
+
+        /** Whether to expose the CSRF token (with Spring Security). */
+        private boolean csrf = true;
+
+        /** Whether to expose the signed-in user's name and authorities (with Spring Security). */
+        private boolean user = true;
+
+        /** Message keys to expose in the request locale. Only listed keys are written into the page. */
+        private List<String> messages = new ArrayList<>();
+
+        public boolean isCsrf() {
+            return csrf;
+        }
+
+        public void setCsrf(boolean csrf) {
+            this.csrf = csrf;
+        }
+
+        public boolean isUser() {
+            return user;
+        }
+
+        public void setUser(boolean user) {
+            this.user = user;
+        }
+
+        public List<String> getMessages() {
+            return messages;
+        }
+
+        public void setMessages(List<String> messages) {
+            this.messages = messages;
+        }
     }
 
     /** Settings under {@code mustache-react.dev-server.*}. */

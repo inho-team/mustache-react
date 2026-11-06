@@ -28,6 +28,7 @@ application {
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
     implementation(project(":mustache-react-spring-boot-starter"))
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

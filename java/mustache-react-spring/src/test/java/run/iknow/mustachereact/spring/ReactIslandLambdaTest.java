@@ -101,7 +101,8 @@ class ReactIslandLambdaTest {
         RequestContextHolder.setRequestAttributes(new MapRequestAttributes());
         model = new HashMap<>();
         model.put("react", new ReactIslandLambda(serializer));
-        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/")));
+        model.put("mr", new MustacheReactHelpers(new ManifestFrontendAssets(manifest, "/mustache-react/"),
+                ReactPageRendererTest.context()));
     }
 
     @AfterEach
@@ -171,7 +172,8 @@ class ReactIslandLambdaTest {
         String scripts = html.substring(html.indexOf("<!--scripts-->") + "<!--scripts-->".length());
         assertThat(head).contains("assets/mustache-react-2.css").doesNotContain("OrderChart");
         assertThat(scripts)
-                .isEqualTo("<link rel=\"stylesheet\" href=\"/mustache-react/assets/OrderChart-3.css\">\n"
+                .isEqualTo("<script type=\"application/json\" id=\"mr-context\">{\"locale\":\"ko-KR\"}</script>\n"
+                        + "<link rel=\"stylesheet\" href=\"/mustache-react/assets/OrderChart-3.css\">\n"
                         + "<link rel=\"modulepreload\" href=\"/mustache-react/assets/OrderChart-3.js\">\n"
                         + "<link rel=\"modulepreload\" href=\"/mustache-react/assets/StatusBadge-4.js\">\n"
                         + "<script type=\"module\" src=\"/mustache-react/assets/mustache-react-2.js\"></script>\n");

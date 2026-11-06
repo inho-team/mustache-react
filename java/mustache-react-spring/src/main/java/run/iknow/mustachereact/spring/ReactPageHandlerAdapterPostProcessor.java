@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.context.MessageSource;
 import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
@@ -18,12 +19,16 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 public class ReactPageHandlerAdapterPostProcessor implements BeanPostProcessor {
 
     private final ObjectProvider<ReactPageRenderer> renderer;
+    private final ObjectProvider<MessageSource> messageSource;
 
     /**
      * @param renderer renders the HTML page; looked up lazily, on the first request
+     * @param messageSource resolves validation messages; looked up lazily
      */
-    public ReactPageHandlerAdapterPostProcessor(ObjectProvider<ReactPageRenderer> renderer) {
+    public ReactPageHandlerAdapterPostProcessor(ObjectProvider<ReactPageRenderer> renderer,
+            ObjectProvider<MessageSource> messageSource) {
         this.renderer = renderer;
+        this.messageSource = messageSource;
     }
 
     @Override
@@ -59,7 +64,7 @@ public class ReactPageHandlerAdapterPostProcessor implements BeanPostProcessor {
         }
         List<HandlerMethodReturnValueHandler> handlers = new ArrayList<>(current.size() + 1);
         handlers.add(new ReactPageReturnValueHandler(entityHandler,
-                new PropsSerializer(adapter.getMessageConverters()), renderer));
+                new PropsSerializer(adapter.getMessageConverters()), renderer, messageSource));
         handlers.addAll(current);
         adapter.setReturnValueHandlers(handlers);
     }

@@ -102,12 +102,25 @@ public class TypeScriptProcessor extends AbstractProcessor {
         if (page == null) {
             return;
         }
-        TypeMirror previous = pages.put(page, method.getReturnType());
-        if (previous != null && !processingEnv.getTypeUtils().isSameType(previous, method.getReturnType())) {
+        TypeMirror type = method.getReturnType();
+        TypeMirror previous = pages.get(page);
+        // A form handler usually returns Object ("redirect:/..." or the page props again) next to a GET handler that
+        // returns the props type: the concrete type wins.
+        if (previous != null && isUntyped(type)) {
+            return;
+        }
+        pages.put(page, type);
+        if (previous != null && !isUntyped(previous) && !processingEnv.getTypeUtils().isSameType(previous, type)) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING,
                     "@ReactPage(\"" + page + "\") is used by methods returning different types; the TypeScript "
-                            + "props use " + method.getReturnType(), method);
+                            + "props use " + type, method);
         }
+    }
+
+    /** {@code void}, {@code Object} and {@code String} ("redirect:...") say nothing about the props. */
+    private static boolean isUntyped(TypeMirror type) {
+        String name = type.toString();
+        return type.getKind() == TypeKind.VOID || "java.lang.Object".equals(name) || "java.lang.String".equals(name);
     }
 
     private static String pageName(ExecutableElement method) {
