@@ -20,7 +20,8 @@ First release: 0.1.0.
   arguments), in Mustache (`{{#mr.t}}key arg{{/mr.t}}`, `{{mr.lang}}`) and as `@ReactPage` titles; key patterns
   such as `orders.*`; `?lang=en` switching kept in a cookie (`mustache-react.i18n.*`); Mustache views always get
   `charset=UTF-8`, so Korean pages are no longer sent as ISO-8859-1.
-- Forms: `@Valid` errors (400 with field errors for JSON requests) and `return "redirect:/path"`.
+- Forms: `useSpringForm` posts JSON (`@RequestBody`) or form fields (`encoding: 'form'`, `@ModelAttribute`, nested
+  names such as `address.city`); `@Valid` errors (400 with field errors for JSON requests) and `return "redirect:/path"`.
 - Server-side rendering (`mustache-react.ssr=auto|always`) with a Node.js sidecar running the bundle from the jar,
   or the Vite dev server in development; falls back to browser rendering per page or island, and restarts the
   sidecar when its process dies.
@@ -29,6 +30,8 @@ First release: 0.1.0.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 
 ### Type generation
+- `@ReactIsland("StatusBadge")` on a props class writes `IslandProps<'StatusBadge'>`, and templates that pass an
+  unknown prop or leave out a required one fail with a message naming the island and its props.
 - `mustache-react-processor` writes TypeScript types for `@ReactPage` props and `@ReactType` classes, following
   Jackson's output (records, Lombok, generics, `@JsonProperty`, `@JsonIgnore`, `@Nullable`).
 

@@ -13,6 +13,6 @@ export {
 export type { CsrfToken, ServerContext, ServerUser, ValidationErrors } from './context.js';
 export { formatMessage, localeHref, messages, useMessages } from './i18n.js';
 export type { Messages } from './i18n.js';
-export { useSpringForm } from './form.js';
+export { toFormData, useSpringForm } from './form.js';
 export type { FieldProps, SpringForm, SpringFormOptions } from './form.js';
 export { VERSION } from './version.js';

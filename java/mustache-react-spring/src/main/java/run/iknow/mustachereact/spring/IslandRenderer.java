@@ -18,6 +18,7 @@ public class IslandRenderer {
     private final ServerSideRendering ssr;
     private final ServerContextFactory serverContext;
     private final FrontendAssets assets;
+    private volatile IslandDeclarations declarations;
 
     /**
      * @param propsSerializer turns props into JSON
@@ -34,6 +35,26 @@ public class IslandRenderer {
     }
 
     /**
+     * @param declarations the props of {@code @ReactIsland} classes, checked on every island; by default read from
+     *     the class path ({@link IslandDeclarations#RESOURCE})
+     * @return this renderer
+     */
+    public IslandRenderer declarations(IslandDeclarations declarations) {
+        this.declarations = declarations;
+        return this;
+    }
+
+    private IslandDeclarations declarations() {
+        IslandDeclarations result = declarations;
+        if (result == null) {
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            result = IslandDeclarations.load(loader != null ? loader : IslandRenderer.class.getClassLoader());
+            declarations = result;
+        }
+        return result;
+    }
+
+    /**
      * @param name component under {@code src/main/frontend/islands}, without extension, e.g. {@code OrderChart} or
      *     {@code charts/OrderChart}
      * @param props the component's props
@@ -41,6 +62,7 @@ public class IslandRenderer {
      */
     public String render(String name, Map<String, Object> props) {
         String component = ISLANDS_DIRECTORY + IslandMarkup.requireValidName(name);
+        declarations().check(name, props.keySet());
         IslandRequestState state = IslandRequestState.current();
         String id = state.register(component);
         String propsJson = propsSerializer.serialize(props);

@@ -1,13 +1,9 @@
 import { useMessages } from '@mustache-react/client';
 import { useState } from 'react';
-import type { OrderStatus } from '../generated/types';
+import type { IslandProps } from '../generated/types';
 
-interface Props {
-  status: OrderStatus;
-  orderId: number;
-}
-
-export default function StatusBadge({ status, orderId }: Props) {
+/** Props: @ReactIsland("StatusBadge") in Java (StatusBadgeProps). */
+export default function StatusBadge({ status, orderId }: IslandProps<'StatusBadge'>) {
   const { t } = useMessages();
   const [open, setOpen] = useState(false);
   return (

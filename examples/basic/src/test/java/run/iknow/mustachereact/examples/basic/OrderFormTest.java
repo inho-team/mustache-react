@@ -98,4 +98,32 @@ class OrderFormTest {
 
         assertThat(response.status).isEqualTo(403);
     }
+
+    private static java.util.Map<String, String> fields(String customer, String amount, String token) {
+        java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("customer", customer);
+        fields.put("amount", amount);
+        fields.put("_csrf", token);
+        return fields;
+    }
+
+    @Test
+    void formPostsBindWithModelAttributeToTheSameUrl() throws Exception {
+        String token = formPageToken();
+
+        // useSpringForm({encoding: 'form'}): JSON answers
+        Browser.Response errors = browser.postForm("/orders/new", "application/json", fields(" ", "", token));
+        assertThat(errors.status).isEqualTo(400);
+        assertThat(errors.body).contains("\"customer\":[\"고객 이름을 입력하세요.\"]");
+
+        // A plain HTML form without JavaScript: the page again with the errors, or a 303
+        Browser.Response page = browser.postForm("/orders/new", "text/html", fields("", "5", token));
+        assertThat(page.status).isEqualTo(200);
+        assertThat(page.body).contains("\"errors\":{\"fields\":{\"customer\":[\"고객 이름을 입력하세요.\"]}");
+
+        Browser.Response saved = browser.postForm("/orders/new", "text/html", fields("한지우", "12000", token));
+        assertThat(saved.status).isEqualTo(303);
+        assertThat(saved.header("Location")).isEqualTo("/orders");
+        assertThat(browser.get("/orders", "application/json").body).contains("\"customer\":\"한지우\"");
+    }
 }

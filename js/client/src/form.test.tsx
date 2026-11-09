@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetServerContext } from './context.js';
-import { useSpringForm, type SpringForm } from './form.js';
+import { toFormData, useSpringForm, type SpringForm } from './form.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -15,9 +15,10 @@ interface OrderForm {
 let root: Root;
 let form: SpringForm<OrderForm>;
 const navigate = vi.fn();
+let encoding: 'json' | 'form' = 'json';
 
 function Form() {
-  form = useSpringForm<OrderForm>({ initialValues: { customer: '', amount: 0 }, action: '/orders/new', navigate });
+  form = useSpringForm<OrderForm>({ initialValues: { customer: '', amount: 0 }, action: '/orders/new', navigate, encoding });
   return (
     <form onSubmit={form.submit}>
       <input aria-label="customer" {...form.field('customer')} />
@@ -40,7 +41,10 @@ function respond(status: number, body: unknown) {
   return fetchMock;
 }
 
-beforeEach(() => navigate.mockReset());
+beforeEach(() => {
+  navigate.mockReset();
+  encoding = 'json';
+});
 afterEach(() => {
   act(() => root.unmount());
   vi.unstubAllGlobals();
@@ -99,5 +103,44 @@ describe('useSpringForm', () => {
 
     await expect(act(() => form.submit())).rejects.toThrow('POST /orders/new failed with HTTP 500');
     expect(form.submitting).toBe(false);
+  });
+
+  it('posts form fields for @ModelAttribute handlers', async () => {
+    encoding = 'form';
+    render({ csrf: { headerName: 'X-CSRF-TOKEN', parameterName: '_csrf', token: 'abc' } });
+    const fetchMock = respond(200, { redirect: '/orders' });
+
+    await act(() => form.submit());
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.body).toBeInstanceOf(URLSearchParams);
+    expect(String(init.body)).toBe('customer=&amount=0');
+    expect(new Headers(init.headers).get('Content-Type')).toBeNull();
+    expect(new Headers(init.headers).get('X-CSRF-TOKEN')).toBe('abc');
+    expect(navigate).toHaveBeenCalledWith('/orders');
+  });
+});
+
+describe('toFormData', () => {
+  it('names nested values as Spring\'s data binder expects', () => {
+    const data = toFormData({
+      customer: '김민수',
+      amount: null,
+      tags: ['a', 'b'],
+      address: { city: 'Seoul', zip: 123 },
+      items: [{ name: 'pen', qty: 2 }],
+      paid: true,
+    });
+    expect([...data.entries()]).toEqual([
+      ['customer', '김민수'],
+      ['amount', ''],
+      ['tags', 'a'],
+      ['tags', 'b'],
+      ['address.city', 'Seoul'],
+      ['address.zip', '123'],
+      ['items[0].name', 'pen'],
+      ['items[0].qty', '2'],
+      ['paid', 'true'],
+    ]);
   });
 });

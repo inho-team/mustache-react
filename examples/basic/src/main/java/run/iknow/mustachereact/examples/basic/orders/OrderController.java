@@ -4,12 +4,14 @@ import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,12 +66,23 @@ public class OrderController {
      * errors next to the fields); otherwise save and redirect.
      */
     @ReactPage(value = "orders/OrderForm", title = "orders.new")
-    @PostMapping("/orders/new")
+    @PostMapping(path = "/orders/new", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Object create(@Validated @RequestBody OrderForm form, BindingResult result) {
         if (result.hasErrors()) {
             return new OrderFormPage(form);
         }
         orders.add(form);
         return "redirect:/orders";
+    }
+
+    /**
+     * The same form posted as form fields: an HTML {@code <form method="post">} (Thymeleaf, Mustache, no JavaScript)
+     * or {@code useSpringForm({encoding: 'form'})}. {@code @ModelAttribute} binds the fields as in any Spring MVC
+     * application; errors and the redirect are answered the same way.
+     */
+    @ReactPage(value = "orders/OrderForm", title = "orders.new")
+    @PostMapping(path = "/orders/new", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public Object createFromForm(@Validated @ModelAttribute("orderForm") OrderForm form, BindingResult result) {
+        return create(form, result);
     }
 }

@@ -13,6 +13,11 @@ export interface Order {
   orderedAt: string;
 }
 
+export interface OrderChartProps {
+  orders: Order[];
+  currency: string;
+}
+
 export interface OrderDetailPage {
   id: number;
   order: Order | null;
@@ -34,6 +39,11 @@ export interface OrderListResponse {
 
 export type OrderStatus = 'PAID' | 'SHIPPED' | 'CANCELLED';
 
+export interface StatusBadgeProps {
+  status: OrderStatus;
+  orderId: number;
+}
+
 /** Props of each @ReactPage, by page name. */
 export interface ReactPages {
   'auth/Login': LoginPage;
@@ -44,3 +54,12 @@ export interface ReactPages {
 
 /** Props of a page, e.g. `PageProps<'orders/OrderList'>`. */
 export type PageProps<P extends keyof ReactPages> = ReactPages[P];
+
+/** Props of each @ReactIsland, by island name. */
+export interface ReactIslands {
+  'OrderChart': OrderChartProps;
+  'StatusBadge': StatusBadgeProps;
+}
+
+/** Props of an island, e.g. `IslandProps<'StatusBadge'>`. */
+export type IslandProps<I extends keyof ReactIslands> = ReactIslands[I];

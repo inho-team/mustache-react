@@ -1,14 +1,9 @@
 import { useMessages } from '@mustache-react/client';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { Order } from '../generated/types';
+import type { IslandProps } from '../generated/types';
 
-interface Props {
-  orders: Order[];
-  currency: string;
-}
-
-/** Any React library works in an island; this one uses recharts. */
-export default function OrderChart({ orders, currency }: Props) {
+/** Any React library works in an island; this one uses recharts. Props: @ReactIsland("OrderChart") in Java. */
+export default function OrderChart({ orders, currency }: IslandProps<'OrderChart'>) {
   const { t } = useMessages();
   const data = orders
     .filter((order) => order.status !== 'CANCELLED')
