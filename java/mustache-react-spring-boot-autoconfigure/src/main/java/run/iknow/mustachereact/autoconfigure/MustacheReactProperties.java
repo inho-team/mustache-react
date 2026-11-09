@@ -367,6 +367,17 @@ public class MustacheReactProperties {
         /** Model name of the helpers: {@code {{{mr.head}}}}, {@code {{{mr.scripts}}}}. */
         private String helpersName = "mr";
 
+        /** Element prefix of islands in Thymeleaf templates: {@code <react:OrderChart orders="${orders}" />}. */
+        private String thymeleafPrefix = "react";
+
+        public String getThymeleafPrefix() {
+            return thymeleafPrefix;
+        }
+
+        public void setThymeleafPrefix(String thymeleafPrefix) {
+            this.thymeleafPrefix = thymeleafPrefix;
+        }
+
         public boolean isModelAttributes() {
             return modelAttributes;
         }

@@ -84,6 +84,14 @@ try {
   assert.equal(await page.getByTestId('summary').textContent(), '5 / 5건');
   assert.equal(await page.getByTestId('user').textContent(), 'kim님');
 
+  // Thymeleaf view: <react:OrderChart orders="${orders}"/> and one <react:StatusBadge/> per th:each row.
+  await page.goto(`${baseUrl}/board`);
+  await page.getByRole('heading', { name: '주문 보드' }).waitFor();
+  const board = page.locator('tbody .badge');
+  await board.nth(1).click();
+  assert.equal(await board.nth(1).textContent(), '배송 중 · 주문 #1002');
+  await page.goto(`${baseUrl}/orders`);
+
   // Language switch (mustache-react.i18n.param=lang): the link reloads the page in English, a cookie keeps it.
   await page.getByTestId('lang-en').click();
   await page.getByRole('heading', { name: 'Orders' }).waitFor();

@@ -11,6 +11,9 @@ First release: 0.1.0.
 - `@ReactPage` renders a handler's return value as a React page; the same URL answers JSON to API clients. A
   returned `ResponseEntity` sets the status and headers of both.
 - `{{#react}}Name a b x=a.b{{/react}}` places React islands in Mustache views; `{{{mr.head}}}` / `{{{mr.scripts}}}`.
+- Thymeleaf views: `<react:OrderChart orders="${orders}" currency="KRW" />` places an island with props from
+  Thymeleaf expressions (objects, not strings), inside `th:each` / `th:if`; `<react:head />`, `<react:scripts />`.
+  Registered automatically when Thymeleaf is on the classpath.
 - Server context in every page: locale, CSRF token and signed-in user (Spring Security 5.7–7), chosen messages,
   and `ServerContextContributor` beans.
 - i18n: messages from `messages.properties` in React (`useMessages().t('orders.count', n)`, MessageFormat-style
@@ -30,6 +33,8 @@ First release: 0.1.0.
   Jackson's output (records, Lombok, generics, `@JsonProperty`, `@JsonIgnore`, `@Nullable`).
 
 ### Build plugins
+- A project without `src/main/frontend/package.json` gets one on the first build, with `tsconfig.json`,
+  `.gitignore` and empty `pages/` and `islands/`; existing files are never changed.
 - Gradle plugin `run.iknow.mustache-react` (Gradle 7.6+, configuration cache) and Maven plugin
   `mustache-react-maven-plugin`: download Node.js, install the frontend dependencies, build the frontend and the
   SSR bundle into the jar, wire the type generator. Tested on Linux and Windows.

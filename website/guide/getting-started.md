@@ -50,38 +50,32 @@ starter가 Spring MVC(`spring-boot-starter-web`)와 Mustache를 함께 가져옵
 
 ## 2. 프론트엔드 디렉터리
 
-`src/main/frontend/package.json`:
+따로 만들 필요가 없습니다. 첫 빌드 때 `src/main/frontend/`에 `package.json`이 없으면 플러그인이 다음 파일을 만듭니다.
+- `package.json`: React, Vite, 플러그인과 같은 버전의 `@mustache-react/*`
+- `tsconfig.json`, `.gitignore`
+- 빈 `pages/`, `islands/`
 
-```json
-{
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@mustache-react/client": "0.1.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
-  },
-  "devDependencies": {
-    "@mustache-react/vite-plugin": "0.1.0",
-    "@vitejs/plugin-react": "^6.2.1",
-    "vite": "^8.3.6",
-    "typescript": "^5.9.3"
-  }
-}
-```
+만들어진 파일은 커밋하세요. 이미 있는 파일은 건드리지 않습니다. React 라이브러리를 더 쓰려면 `package.json`의 `dependencies`에 추가합니다.
 
 ```
 src/main/frontend/
 ├── package.json
 ├── pages/          @ReactPage("Hello") → pages/Hello.tsx
-├── islands/        {{#react}}Chart{{/react}} → islands/Chart.tsx
+├── islands/        <react:Chart/> (Thymeleaf), {{#react}}Chart{{/react}} (Mustache) → islands/Chart.tsx
 ├── app.tsx         (선택) 모든 페이지와 island를 감싸는 Provider
 └── generated/      Java DTO에서 생성되는 types.ts
 ```
 
 `vite.config.ts`는 두지 않아도 됩니다. 두면 그 설정이 쓰이고, `mustacheReact()` 플러그인을 넣어야 합니다.
 
-## 3. 첫 페이지
+## 3. 첫 화면
+
+화면을 만드는 방법은 두 가지이고, 한 애플리케이션에서 섞어 써도 됩니다.
+
+- **HTML 템플릿 + React 부품:** Thymeleaf나 Mustache로 화면을 쓰고, 필요한 곳에만 React 컴포넌트를 태그로 넣습니다. 지금까지 쓰던 방식 그대로입니다. [Thymeleaf](./thymeleaf), [Mustache island](./islands) 참고.
+- **페이지 전체를 React로:** 컨트롤러 반환값이 props가 되는 `@ReactPage`입니다. 아래 예제가 이 방식입니다.
+
+### `@ReactPage` 예제
 
 ```java
 @RestController

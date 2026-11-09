@@ -119,4 +119,14 @@ class MustacheReactAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(MustacheReactAutoConfiguration.class))
                 .run(context -> assertThat(context).doesNotHaveBean(MustacheReactProperties.class));
     }
+
+    @Test
+    void registersTheThymeleafDialect() {
+        runner.run(context -> assertThat(context)
+                .hasSingleBean(run.iknow.mustachereact.spring.thymeleaf.MustacheReactDialect.class)
+                .hasSingleBean(run.iknow.mustachereact.spring.IslandRenderer.class));
+        runner.withClassLoader(new org.springframework.boot.test.context.FilteredClassLoader("org.thymeleaf"))
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(run.iknow.mustachereact.spring.thymeleaf.MustacheReactDialect.class));
+    }
 }

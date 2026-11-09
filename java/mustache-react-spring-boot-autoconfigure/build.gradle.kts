@@ -11,10 +11,12 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
     compileOnly("org.springframework:spring-webmvc")
     compileOnly("com.samskivert:jmustache")
+    compileOnly("org.thymeleaf:thymeleaf")
     annotationProcessor(platform(libs.spring.boot.dependencies.min))
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("org.springframework.boot:spring-boot-starter-mustache")
+    testImplementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 }

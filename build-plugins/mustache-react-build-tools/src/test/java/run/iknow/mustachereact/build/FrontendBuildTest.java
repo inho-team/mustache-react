@@ -41,11 +41,13 @@ class FrontendBuildTest {
     }
 
     @Test
-    void explainsAMissingPackageJsonOrCli() throws Exception {
+    void createsAMissingProjectAndExplainsAMissingCli() throws Exception {
         FrontendBuild build = new FrontendBuild(dir, NodeRuntime.fromPath(), BuildLog.STANDARD);
 
-        assertThatThrownBy(() -> build.build(dir.resolve("out"), "/mustache-react/")).hasMessageContaining("no package.json");
-        Files.write(dir.resolve("package.json"), "{}".getBytes(StandardCharsets.UTF_8));
+        // No package.json: the project is created, then the dependencies are still to be installed.
+        assertThatThrownBy(() -> build.build(dir.resolve("out"), "/mustache-react/"))
+                .hasMessageContaining("install the dependencies");
+        assertThat(dir.resolve("package.json")).isRegularFile();
         assertThatThrownBy(() -> build.build(dir.resolve("out"), "/mustache-react/"))
                 .hasMessageContaining("Add @mustache-react/vite-plugin to the devDependencies");
     }

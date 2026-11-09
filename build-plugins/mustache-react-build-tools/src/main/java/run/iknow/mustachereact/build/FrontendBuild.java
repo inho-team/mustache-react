@@ -139,6 +139,8 @@ public final class FrontendBuild {
     }
 
     private void requirePackageJson() throws IOException {
+        // A new project gets package.json, tsconfig.json and .gitignore from the plugin.
+        FrontendScaffold.createIfMissing(frontendDir, log);
         if (!Files.isRegularFile(frontendDir.resolve("package.json"))) {
             throw new IOException("mustache-react: no package.json in " + frontendDir
                     + ". Create the frontend there (see the mustache-react README).");
