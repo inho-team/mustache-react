@@ -54,8 +54,8 @@ try {
   await page.getByLabel('고객 검색').fill('이서연');
   assert.equal(await page.getByTestId('summary').textContent(), '1 / 4건');
 
-  // Thymeleaf islands, loaded lazily from the CDN by relative imports.
-  await page.goto(`${baseUrl}/board`);
+  // Mustache islands (<react:StatusBadge .../>), loaded lazily from the CDN by relative imports.
+  await page.goto(`${baseUrl}/dashboard`);
   await page.locator('tbody .badge').nth(1).click();
   assert.equal(await page.locator('tbody .badge').nth(1).textContent(), '배송 중 · 주문 #1002');
 

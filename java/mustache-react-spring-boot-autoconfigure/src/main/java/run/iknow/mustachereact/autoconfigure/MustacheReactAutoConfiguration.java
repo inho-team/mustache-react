@@ -33,7 +33,6 @@ import run.iknow.mustachereact.core.ViteDevServer;
 import run.iknow.mustachereact.spring.DevServerFrontendAssets;
 import run.iknow.mustachereact.spring.FrontendAssets;
 import run.iknow.mustachereact.spring.HttpSsrEngine;
-import run.iknow.mustachereact.spring.IslandRenderer;
 import run.iknow.mustachereact.spring.NodeSsrServer;
 import run.iknow.mustachereact.spring.ServerSideRendering;
 import run.iknow.mustachereact.spring.LocaleContextContributor;
@@ -53,7 +52,6 @@ import run.iknow.mustachereact.spring.ReactPageRenderer;
 import run.iknow.mustachereact.spring.VersionContextContributor;
 import run.iknow.mustachereact.spring.ViteDevServerProcess;
 import run.iknow.mustachereact.spring.ViteManifestSource;
-import run.iknow.mustachereact.spring.thymeleaf.MustacheReactDialect;
 
 /**
  * Auto-configuration for mustache-react.
@@ -239,29 +237,6 @@ public class MustacheReactAutoConfiguration {
     public ReactIslandLambda reactIslandLambda(PropsSerializer propsSerializer, ServerSideRendering ssr,
             ServerContextFactory serverContext) {
         return new ReactIslandLambda(propsSerializer, ssr, serverContext);
-    }
-
-    /** Renders islands for template engines other than Mustache (Thymeleaf). */
-    @Bean
-    @ConditionalOnMissingBean
-    public IslandRenderer mustacheReactIslandRenderer(PropsSerializer propsSerializer, ServerSideRendering ssr,
-            ServerContextFactory serverContext, FrontendAssets assets) {
-        return new IslandRenderer(propsSerializer, ssr, serverContext, assets);
-    }
-
-    /**
-     * {@code <react:OrderChart orders="${orders}" />}, {@code <react:head />} and {@code <react:scripts />} in
-     * Thymeleaf templates. Spring Boot adds every {@code IDialect} bean to its Thymeleaf template engine.
-     */
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(name = "org.thymeleaf.dialect.IDialect")
-    static class ThymeleafConfiguration {
-
-        @Bean
-        @ConditionalOnMissingBean
-        MustacheReactDialect mustacheReactDialect(IslandRenderer islands, MustacheReactProperties properties) {
-            return new MustacheReactDialect(islands, properties.getTemplate().getThymeleafPrefix());
-        }
     }
 
     @Bean

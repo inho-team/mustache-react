@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
  * <ul>
  *   <li>{@code mustache-react-processor} writes {@code IslandProps<'StatusBadge'>} into {@code types.ts}, so the
  *       component in {@code islands/StatusBadge.tsx} is type-checked.</li>
- *   <li>When a template renders the island ({@code <react:StatusBadge ...>} in Thymeleaf,
+ *   <li>When a Mustache template renders the island ({@code <react:StatusBadge ...>} or
  *       {@code {{#react}}StatusBadge ...{{/react}}} in Mustache), a prop the class does not have, or a missing
  *       prop that is not {@code @Nullable}, fails the rendering with a message naming the island and its props.</li>
  * </ul>

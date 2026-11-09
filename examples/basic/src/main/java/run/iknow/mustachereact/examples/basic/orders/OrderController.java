@@ -76,7 +76,7 @@ public class OrderController {
     }
 
     /**
-     * The same form posted as form fields: an HTML {@code <form method="post">} (Thymeleaf, Mustache, no JavaScript)
+     * The same form posted as form fields: an HTML {@code <form method="post">} (a Mustache view, no JavaScript)
      * or {@code useSpringForm({encoding: 'form'})}. {@code @ModelAttribute} binds the fields as in any Spring MVC
      * application; errors and the redirect are answered the same way.
      */

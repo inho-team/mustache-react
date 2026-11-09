@@ -61,7 +61,7 @@ starter가 Spring MVC(`spring-boot-starter-web`)와 Mustache를 함께 가져옵
 src/main/frontend/
 ├── package.json
 ├── pages/          @ReactPage("Hello") → pages/Hello.tsx
-├── islands/        <react:Chart/> (Thymeleaf), {{#react}}Chart{{/react}} (Mustache) → islands/Chart.tsx
+├── islands/        Mustache의 <react:Chart/> → islands/Chart.tsx
 ├── app.tsx         (선택) 모든 페이지와 island를 감싸는 Provider
 └── generated/      Java DTO에서 생성되는 types.ts
 ```
@@ -72,7 +72,7 @@ src/main/frontend/
 
 화면을 만드는 방법은 두 가지이고, 한 애플리케이션에서 섞어 써도 됩니다.
 
-- **HTML 템플릿 + React 부품:** Thymeleaf나 Mustache로 화면을 쓰고, 필요한 곳에만 React 컴포넌트를 태그로 넣습니다. 지금까지 쓰던 방식 그대로입니다. [Thymeleaf](./thymeleaf), [Mustache island](./islands) 참고.
+- **HTML 템플릿 + React 부품:** Mustache로 화면을 쓰고, 필요한 곳에만 React 컴포넌트를 태그로 넣습니다. [Mustache island](./islands) 참고.
 - **페이지 전체를 React로:** 컨트롤러 반환값이 props가 되는 `@ReactPage`입니다. 아래 예제가 이 방식입니다.
 
 ### `@ReactPage` 예제
