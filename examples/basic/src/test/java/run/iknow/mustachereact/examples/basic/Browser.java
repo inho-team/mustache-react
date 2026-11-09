@@ -62,6 +62,11 @@ final class Browser {
     }
 
     Response postForm(String path, Map<String, String> fields) throws IOException {
+        return postForm(path, "text/html", fields);
+    }
+
+    /** An HTML form post (application/x-www-form-urlencoded), answered as {@code accept}. */
+    Response postForm(String path, String accept, Map<String, String> fields) throws IOException {
         StringBuilder body = new StringBuilder();
         for (Map.Entry<String, String> field : fields.entrySet()) {
             if (body.length() > 0) {
@@ -69,7 +74,7 @@ final class Browser {
             }
             body.append(URLEncoder.encode(field.getKey(), "UTF-8")).append('=').append(URLEncoder.encode(field.getValue(), "UTF-8"));
         }
-        return send("POST", path, "text/html", "application/x-www-form-urlencoded", body.toString(), null);
+        return send("POST", path, accept, "application/x-www-form-urlencoded", body.toString(), null);
     }
 
     Response postJson(String path, String accept, String json, String csrfToken) throws IOException {

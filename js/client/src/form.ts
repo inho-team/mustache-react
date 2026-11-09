@@ -6,6 +6,12 @@ export interface SpringFormOptions<T> {
   initialValues: T;
   /** URL the form is submitted to. Default: the current page. */
   action?: string;
+  /**
+   * How the values are sent. `json` (default) is for `@RequestBody` parameters; `form` sends
+   * `application/x-www-form-urlencoded`, as an HTML form does, for `@ModelAttribute` parameters. Nested objects
+   * become `address.city`, lists `items[0].name`, as Spring's data binder expects.
+   */
+  encoding?: 'json' | 'form';
   /** HTTP method. Default: `POST`. */
   method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** Called with the JSON body after a successful submission that does not redirect. */
@@ -85,13 +91,14 @@ export function useSpringForm<T extends object>(options: SpringFormOptions<T>): 
 
   const submit = async (event?: FormEvent) => {
     event?.preventDefault();
-    const { action, method = 'POST', onSuccess, navigate } = optionsRef.current;
+    const { action, method = 'POST', encoding = 'json', onSuccess, navigate } = optionsRef.current;
     setSubmitting(true);
     try {
       const response = await springFetch(action ?? window.location.pathname + window.location.search, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(valuesRef.current),
+        ...(encoding === 'form'
+          ? { body: toFormData(valuesRef.current) }
+          : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(valuesRef.current) }),
       });
       const text = await response.text();
       const body: unknown = text ? JSON.parse(text) : null;
@@ -123,4 +130,32 @@ export function useSpringForm<T extends object>(options: SpringFormOptions<T>): 
     submitting,
     submit,
   };
+}
+
+/**
+ * Form fields for Spring's data binder: `{address: {city}}` becomes `address.city`, `{items: [{name}]}` becomes
+ * `items[0].name`, a list of plain values repeats the name. `null` and `undefined` become empty values, which the
+ * binder turns into `null` for numbers.
+ */
+export function toFormData(values: object): URLSearchParams {
+  const params = new URLSearchParams();
+  const add = (name: string, value: unknown): void => {
+    if (value === null || value === undefined) {
+      params.append(name, '');
+    } else if (Array.isArray(value)) {
+      value.forEach((item, index) =>
+        item !== null && typeof item === 'object' ? add(`${name}[${index}]`, item) : params.append(name, String(item)),
+      );
+    } else if (value instanceof Date) {
+      params.append(name, value.toISOString());
+    } else if (typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) {
+        add(name ? `${name}.${key}` : key, child);
+      }
+    } else {
+      params.append(name, String(value));
+    }
+  };
+  add('', values);
+  return params;
 }

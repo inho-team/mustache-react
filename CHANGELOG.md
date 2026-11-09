@@ -20,7 +20,8 @@ First release: 0.1.0.
   arguments), in Mustache (`{{#mr.t}}key arg{{/mr.t}}`, `{{mr.lang}}`) and as `@ReactPage` titles; key patterns
   such as `orders.*`; `?lang=en` switching kept in a cookie (`mustache-react.i18n.*`); Mustache views always get
   `charset=UTF-8`, so Korean pages are no longer sent as ISO-8859-1.
-- Forms: `@Valid` errors (400 with field errors for JSON requests) and `return "redirect:/path"`.
+- Forms: `useSpringForm` posts JSON (`@RequestBody`) or form fields (`encoding: 'form'`, `@ModelAttribute`, nested
+  names such as `address.city`); `@Valid` errors (400 with field errors for JSON requests) and `return "redirect:/path"`.
 - Server-side rendering (`mustache-react.ssr=auto|always`) with a Node.js sidecar running the bundle from the jar,
   or the Vite dev server in development; falls back to browser rendering per page or island, and restarts the
   sidecar when its process dies.
