@@ -155,8 +155,10 @@ ServerContextContributor tenant(TenantResolver tenants) {
 | `{{{mr.head}}}` | 페이지의 CSS와 modulepreload |
 | `{{{mr.page}}}` | React가 렌더링할 요소와 props(SSR이면 HTML 포함) |
 | `{{{mr.scripts}}}` | 서버 컨텍스트와 진입 스크립트 |
+| `{{mr.lang}}`, `{{#mr.t}}key{{/mr.t}}` | 요청 locale 태그와 메시지 (Mustache 화면과 같음) |
+| `<react:Name ... />`, `<react:head />`, `<react:scripts />` | island와 에셋 태그 (`template.html-tags=true`일 때) |
 
-레이아웃의 `mr`에는 위 세 개만 있습니다. Mustache 화면용 `mr.t`, `mr.lang`이나 island(`react`)는 쓸 수 없습니다. 레이아웃은 처음 쓸 때 한 번 컴파일되어 재시작 전까지 유지됩니다.
+`mr`은 `template.helpers-name`으로 바꾼 이름으로도 들어갑니다. 레이아웃은 운영에서는 한 번 컴파일되어 유지되고, 개발 모드(`dev-server.enabled=true`)에서는 페이지마다 다시 읽습니다.
 
 ```mustache
 <!doctype html>

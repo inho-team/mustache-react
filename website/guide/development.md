@@ -68,7 +68,7 @@ cd src/main/frontend && npx mustache-react-vite dev
 | 컴포넌트, CSS | 즉시 (HMR) |
 | Mustache 템플릿 | 즉시 (위 `spring.mustache.*` 설정 시 새로고침) |
 | `messages.properties` 내용 | `spring.messages.cache-duration`을 짧게 두면 다음 요청부터. 단 `mustache-react.context.messages`의 `orders.*` 같은 패턴에 **새 키를 추가**하면 재시작해야 화면에 내려갑니다 |
-| `@ReactPage` 레이아웃 (`layout.mustache`) | 재시작 |
+| `@ReactPage` 레이아웃 (`layout.mustache`) | 새로고침 (개발 모드에서는 페이지마다 다시 읽음) |
 | `package.json` (라이브러리 추가) | 의존성 설치 후 재시작 |
 | Java 코드, `application.properties` | 재시작 |
 

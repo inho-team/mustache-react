@@ -192,10 +192,13 @@ const { orders } = await response.json();
 | `{{{mr.head}}}` 또는 `<react:head />` | CSS, 미리 불러올 JS (`<head>` 안) |
 | `{{{mr.page}}}` | React가 그려질 요소와 props (서버 렌더링 결과 포함) |
 | `{{{mr.scripts}}}` 또는 `<react:scripts />` | 서버 컨텍스트와 엔트리 스크립트 (`</body>` 앞) |
+| `{{mr.lang}}`, `{{#mr.t}}key{{/mr.t}}` | Mustache 화면과 같은 언어 태그와 메시지 |
+| `<react:Name ... />` | 레이아웃에도 island를 넣을 수 있습니다 (예: 공통 알림 배지) |
 
 - 레이아웃은 애플리케이션의 Mustache 컴파일러로 컴파일되므로 partial(`{{> ...}}`)을 쓸 수 있습니다.
 - 레이아웃에는 컨트롤러 Model이 들어오지 않습니다. 위 변수만 쓸 수 있습니다. 페이지마다 다른 내용은 React 컴포넌트에서 그립니다.
-- 레이아웃은 처음 쓸 때 한 번 읽어 둡니다. 고친 뒤에는 애플리케이션을 다시 시작해야 합니다.
+- `mustache-react.template.helpers-name`을 바꾸면 레이아웃에서도 그 이름으로 씁니다(`mr`도 계속 됩니다).
+- 운영에서는 레이아웃을 처음 쓸 때 한 번 읽어 둡니다. 개발 모드(`dev-server.enabled=true`)에서는 페이지마다 다시 읽어서 고친 내용이 새로고침으로 반영됩니다.
 
 ## 모든 페이지에 공통으로: `app.tsx`
 

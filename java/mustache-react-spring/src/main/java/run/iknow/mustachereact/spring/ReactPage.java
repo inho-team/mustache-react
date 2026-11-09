@@ -20,8 +20,6 @@ import java.lang.annotation.Target;
  * <p>A browser request ({@code Accept: text/html}) gets an HTML page in which the returned object becomes the props
  * of the component {@code src/main/frontend/pages/orders/OrderList.tsx}. A request for {@code application/json}
  * gets the same object as JSON, so an existing API endpoint keeps working.
- *
- * <p><strong>Status:</strong> declared in M0; the rendering is implemented in M1.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

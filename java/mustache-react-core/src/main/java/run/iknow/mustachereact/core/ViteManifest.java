@@ -152,7 +152,8 @@ public final class ViteManifest {
             }
         }
         throw new IllegalStateException("The Vite manifest has no '" + ENTRY_NAME
-                + "' entry. Is @mustache-react/vite-plugin listed in vite.config.ts?");
+                + "' entry. Build with the mustache-react build plugin; with your own vite.config.ts, add mustacheReact() "
+                + "from @mustache-react/vite-plugin to its plugins.");
     }
 
     private String findComponentKey(String component) {

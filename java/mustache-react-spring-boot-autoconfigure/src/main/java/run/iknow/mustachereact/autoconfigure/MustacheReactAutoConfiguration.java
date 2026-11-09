@@ -3,6 +3,7 @@ package run.iknow.mustachereact.autoconfigure;
 import java.io.File;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
@@ -35,6 +36,7 @@ import run.iknow.mustachereact.spring.FrontendAssets;
 import run.iknow.mustachereact.spring.HttpSsrEngine;
 import run.iknow.mustachereact.spring.NodeSsrServer;
 import run.iknow.mustachereact.spring.ServerSideRendering;
+import run.iknow.mustachereact.spring.IslandTagCompiler;
 import run.iknow.mustachereact.spring.LocaleContextContributor;
 import run.iknow.mustachereact.spring.MessageKeys;
 import run.iknow.mustachereact.spring.MessageLambda;
@@ -108,9 +110,21 @@ public class MustacheReactAutoConfiguration {
     @ConditionalOnMissingBean
     public ReactPageRenderer reactPageRenderer(ResourceLoader resourceLoader, MustacheReactProperties properties,
             ObjectProvider<Mustache.Compiler> compiler, FrontendAssets assets, ServerContextFactory serverContext,
-            ServerSideRendering ssr) {
-        return new ReactPageRenderer(resourceLoader, compiler.getIfAvailable(Mustache::compiler), assets,
-                serverContext, ssr, properties.getLayout(), properties.isContentNegotiation());
+            ServerSideRendering ssr, ReactIslandLambda react, MessageSource messageSource) {
+        MustacheReactProperties.Template template = properties.getTemplate();
+        Mustache.Compiler layoutCompiler = compiler.getIfAvailable(Mustache::compiler);
+        if (template.isHtmlTags() && !(layoutCompiler instanceof IslandTagCompiler)) {
+            layoutCompiler = new IslandTagCompiler(layoutCompiler, template.getReactName(), template.getReactName(),
+                    template.getHelpersName());
+        }
+        // Layouts see the same helpers as Mustache views: islands, mr.t, mr.lang.
+        return new ReactPageRenderer(resourceLoader, layoutCompiler, assets, serverContext, ssr, properties.getLayout(),
+                properties.isContentNegotiation())
+                .layoutModel(Collections.<String, Object>singletonMap(template.getReactName(), react))
+                .helpersName(template.getHelpersName())
+                .messages(new MessageLambda(messageSource))
+                // In development the layout is read again for every page, like Mustache views with cache off.
+                .cacheLayout(!properties.getDevServer().isEnabled());
     }
 
     /**
