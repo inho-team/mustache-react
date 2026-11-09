@@ -96,7 +96,7 @@ public Object create(@Valid @ModelAttribute OrderForm form, BindingResult result
 const form = useSpringForm<OrderForm>({ initialValues: initial, action: '/orders/new', encoding: 'form' });
 ```
 
-에러 표시와 `redirect:` 처리는 JSON과 같습니다. 같은 핸들러는 JavaScript 없는 일반 HTML `<form method="post">`(Thymeleaf, Mustache 화면)도 받습니다. 에러가 있으면 페이지를 다시 그리고, 성공하면 303으로 이동합니다.
+에러 표시와 `redirect:` 처리는 JSON과 같습니다. 같은 핸들러는 JavaScript 없는 일반 HTML `<form method="post">`(Mustache 화면)도 받습니다. 에러가 있으면 페이지를 다시 그리고, 성공하면 303으로 이동합니다.
 
 JSON과 폼 전송을 같은 URL에서 둘 다 받으려면 `consumes`로 나눕니다.
 

@@ -5,7 +5,7 @@ import java.util.Map;
 import run.iknow.mustachereact.core.IslandMarkup;
 
 /**
- * Renders React islands into server-side templates (Mustache, Thymeleaf): the island markup with its props, the
+ * Renders React islands into Mustache templates: the island markup with its props, the
  * server-rendered HTML when SSR is on, and the asset tags of the page. Islands of one request share a counter and
  * the list of components, so {@link #scripts()} preloads exactly the islands on the page.
  */

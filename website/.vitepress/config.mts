@@ -19,7 +19,6 @@ export default defineConfig({
         items: [
           { text: '시작하기', link: '/guide/getting-started' },
           { text: '@ReactPage 페이지', link: '/guide/pages' },
-          { text: 'Thymeleaf', link: '/guide/thymeleaf' },
           { text: 'Mustache island', link: '/guide/islands' },
           { text: '폼과 서버 컨텍스트', link: '/guide/forms' },
           { text: '다국어 (i18n)', link: '/guide/i18n' },

@@ -13,9 +13,6 @@ First release: 0.1.0.
 - Mustache views place React islands as HTML tags, `<react:StatusBadge status="{{status}}" order-id="{{id}}" />`
   (a lone `{{path}}` passes the model object, other values are text), or as `{{#react}}Name a x=a.b{{/react}}`
   sections; `<react:head />` / `<react:scripts />` (or `{{{mr.head}}}` / `{{{mr.scripts}}}`).
-- Thymeleaf views: `<react:OrderChart orders="${orders}" currency="KRW" />` places an island with props from
-  Thymeleaf expressions (objects, not strings), inside `th:each` / `th:if`; `<react:head />`, `<react:scripts />`.
-  Registered automatically when Thymeleaf is on the classpath.
 - Server context in every page: locale, CSRF token and signed-in user (Spring Security 5.7–7), chosen messages,
   and `ServerContextContributor` beans.
 - i18n: messages from `messages.properties` in React (`useMessages().t('orders.count', n)`, MessageFormat-style

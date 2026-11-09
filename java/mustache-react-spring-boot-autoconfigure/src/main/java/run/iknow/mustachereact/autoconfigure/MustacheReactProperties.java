@@ -386,17 +386,6 @@ public class MustacheReactProperties {
             this.htmlTags = htmlTags;
         }
 
-        /** Element prefix of islands in Thymeleaf templates: {@code <react:OrderChart orders="${orders}" />}. */
-        private String thymeleafPrefix = "react";
-
-        public String getThymeleafPrefix() {
-            return thymeleafPrefix;
-        }
-
-        public void setThymeleafPrefix(String thymeleafPrefix) {
-            this.thymeleafPrefix = thymeleafPrefix;
-        }
-
         public boolean isModelAttributes() {
             return modelAttributes;
         }

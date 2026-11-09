@@ -121,12 +121,27 @@ class MustacheReactAutoConfigurationTest {
     }
 
     @Test
-    void registersTheThymeleafDialect() {
-        runner.run(context -> assertThat(context)
-                .hasSingleBean(run.iknow.mustachereact.spring.thymeleaf.MustacheReactDialect.class)
-                .hasSingleBean(run.iknow.mustachereact.spring.IslandRenderer.class));
-        runner.withClassLoader(new org.springframework.boot.test.context.FilteredClassLoader("org.thymeleaf"))
-                .run(context -> assertThat(context)
-                        .doesNotHaveBean(run.iknow.mustachereact.spring.thymeleaf.MustacheReactDialect.class));
+    void switchesTheLanguageWithARequestParameterWhenConfigured() {
+        WebApplicationContextRunner i18n = new WebApplicationContextRunner().withConfiguration(AutoConfigurations
+                .of(MustacheReactAutoConfiguration.class, MustacheReactLocaleAutoConfiguration.class));
+        i18n.run(context -> assertThat(context).doesNotHaveBean("localeResolver"));
+        i18n.withPropertyValues("mustache-react.i18n.param=lang", "mustache-react.i18n.default-locale=ko",
+                "mustache-react.i18n.locales=ko,en").run(context -> {
+                    assertThat(context.getBean("localeResolver"))
+                            .isInstanceOf(org.springframework.web.servlet.i18n.CookieLocaleResolver.class);
+                    assertThat(context.getBean(MustacheReactProperties.class).getI18n().getLocales())
+                            .containsExactly(java.util.Locale.KOREAN, java.util.Locale.ENGLISH);
+                });
+    }
+
+    @Test
+    void wrapsTheMustacheCompilerForIslandTags() {
+        runner.withBean(com.samskivert.mustache.Mustache.Compiler.class, com.samskivert.mustache.Mustache::compiler)
+                .run(context -> assertThat(context.getBean(com.samskivert.mustache.Mustache.Compiler.class))
+                        .isInstanceOf(run.iknow.mustachereact.spring.IslandTagCompiler.class));
+        runner.withBean(com.samskivert.mustache.Mustache.Compiler.class, com.samskivert.mustache.Mustache::compiler)
+                .withPropertyValues("mustache-react.template.html-tags=false")
+                .run(context -> assertThat(context.getBean(com.samskivert.mustache.Mustache.Compiler.class))
+                        .isNotInstanceOf(run.iknow.mustachereact.spring.IslandTagCompiler.class));
     }
 }
