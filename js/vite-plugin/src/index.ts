@@ -46,8 +46,10 @@ export interface MustacheReactOptions {
    */
   outDir?: string;
   /**
-   * Public URL path of the assets. Must match `mustache-react.public-path`.
-   * Default: `MUSTACHE_REACT_BASE`, else `/mustache-react/`.
+   * Public URL path of the assets on the dev server. Must match `mustache-react.public-path` in development.
+   * Default: `MUSTACHE_REACT_BASE`, else `/mustache-react/`. Builds always use relative URLs (`./`), so the built
+   * files work wherever they are served: from the application jar or from a CDN (`mustache-react.public-path`
+   * set to its URL), without rebuilding.
    */
   base?: string;
   /** Dev server port. Must match `mustache-react.dev-server.url`. Default: `MUSTACHE_REACT_DEV_PORT`, else 5173. */
@@ -150,7 +152,9 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
       const templates = options.templatesDir ?? process.env.MUSTACHE_REACT_TEMPLATES_DIR ?? DEFAULT_TEMPLATES_DIR;
       templatesDir = templates === false ? undefined : path.resolve(root, templates);
       return {
-        base: options.base ?? process.env.MUSTACHE_REACT_BASE ?? DEFAULT_BASE,
+        // Built chunks load each other and their CSS relative to their own URL: the same files work in the jar and
+        // on a CDN. The dev server needs the absolute path Spring points to.
+        base: env?.command === 'build' ? './' : (options.base ?? process.env.MUSTACHE_REACT_BASE ?? DEFAULT_BASE),
         server: {
           port,
           strictPort: true,

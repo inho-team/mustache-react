@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "e2e": "node examples/basic/e2e/smoke.mjs",
-    "e2e:dev": "node examples/basic/e2e/dev.mjs"
+    "e2e:dev": "node examples/basic/e2e/dev.mjs",
+    "e2e:cdn": "node examples/basic/e2e/cdn.mjs"
   },
   "devDependencies": {
     "playwright": "1.63.0"

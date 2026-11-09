@@ -54,16 +54,19 @@ public final class PageAssets {
     /**
      * Renders the tags that belong in {@code <head>}: stylesheets and module preloads.
      *
-     * @param publicPath URL path the assets are served from, e.g. {@code /mustache-react/}
+     * @param publicPath where the assets are served from: a path such as {@code /mustache-react/}, or the URL of a
+     *     CDN such as {@code https://cdn.example.com/app/}
      * @return HTML tags, one per line
      */
     public String headTags(String publicPath) {
         StringBuilder sb = new StringBuilder();
         for (String style : styles) {
-            sb.append("<link rel=\"stylesheet\" href=\"").append(Html.escape(url(publicPath, style))).append("\">\n");
+            sb.append("<link rel=\"stylesheet\" href=\"").append(Html.escape(url(publicPath, style))).append('"')
+                    .append(crossorigin(publicPath)).append(">\n");
         }
         for (String preload : preloads) {
-            sb.append("<link rel=\"modulepreload\" href=\"").append(Html.escape(url(publicPath, preload))).append("\">\n");
+            sb.append("<link rel=\"modulepreload\" href=\"").append(Html.escape(url(publicPath, preload))).append('"')
+                    .append(crossorigin(publicPath)).append(">\n");
         }
         return sb.toString();
     }
@@ -71,15 +74,34 @@ public final class PageAssets {
     /**
      * Renders the entry script tags, placed before {@code </body>}.
      *
-     * @param publicPath URL path the assets are served from, e.g. {@code /mustache-react/}
+     * @param publicPath where the assets are served from: a path such as {@code /mustache-react/}, or the URL of a
+     *     CDN such as {@code https://cdn.example.com/app/}
      * @return HTML tags, one per line
      */
     public String scriptTags(String publicPath) {
         StringBuilder sb = new StringBuilder();
         for (String script : scripts) {
-            sb.append("<script type=\"module\" src=\"").append(Html.escape(url(publicPath, script))).append("\"></script>\n");
+            sb.append("<script type=\"module\" src=\"").append(Html.escape(url(publicPath, script))).append('"')
+                    .append(crossorigin(publicPath)).append("></script>\n");
         }
         return sb.toString();
+    }
+
+    /**
+     * Whether the assets come from another origin, such as a CDN: {@code https://cdn.example.com/app/} or
+     * {@code //cdn.example.com/app/}.
+     *
+     * @param publicPath where the assets are served from
+     * @return {@code true} for an absolute URL
+     */
+    public static boolean isAbsolute(String publicPath) {
+        String lower = publicPath.toLowerCase(java.util.Locale.ROOT);
+        return lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("//");
+    }
+
+    /** Assets from another origin are fetched with CORS, the same way for the preload and the script. */
+    private static String crossorigin(String publicPath) {
+        return isAbsolute(publicPath) ? " crossorigin" : "";
     }
 
     static String url(String publicPath, String file) {

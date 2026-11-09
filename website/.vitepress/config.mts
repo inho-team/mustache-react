@@ -26,6 +26,7 @@ export default defineConfig({
           { text: 'TypeScript 타입 생성', link: '/guide/types' },
           { text: '개발 모드', link: '/guide/development' },
           { text: '서버 렌더링 (SSR)', link: '/guide/ssr' },
+          { text: '배포: 같이 또는 따로', link: '/guide/deployment' },
         ],
       },
       {

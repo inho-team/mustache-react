@@ -54,6 +54,19 @@ class ViteManifestTest {
     }
 
     @Test
+    void loadsAssetsFromACdnWithCors() {
+        PageAssets assets = ViteManifest.parse(MANIFEST).assetsFor("pages/orders/OrderList");
+
+        assertThat(assets.headTags("https://cdn.example.com/shop"))
+                .contains("<link rel=\"stylesheet\" href=\"https://cdn.example.com/shop/assets/OrderList-3.css\" crossorigin>")
+                .contains("<link rel=\"modulepreload\" href=\"https://cdn.example.com/shop/assets/OrderList-3.js\" crossorigin>");
+        assertThat(assets.scriptTags("//cdn.example.com/shop/")).isEqualTo(
+                "<script type=\"module\" src=\"//cdn.example.com/shop/assets/mustache-react-4.js\" crossorigin></script>\n");
+        assertThat(PageAssets.isAbsolute("/mustache-react/")).isFalse();
+        assertThat(PageAssets.isAbsolute("HTTPS://cdn")).isTrue();
+    }
+
+    @Test
     void collectsSeveralComponentsAndSplitsHeadFromBody() {
         ViteManifest manifest = ViteManifest.parse(MANIFEST);
         PageAssets head = manifest.entryAssets();

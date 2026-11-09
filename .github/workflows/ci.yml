@@ -211,6 +211,16 @@ jobs:
       - run: pnpm e2e
         env:
           BASE_URL: http://localhost:18080
+      - name: Restart the app with its assets on a separate server (CDN)
+        run: |
+          pkill -f examples.basic.BasicApplication || true
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:18080/ || break; sleep 1; done
+          ./gradlew :examples:basic:run -PspringBootVersion=${{ matrix.boot }} "--args=--server.port=18080 --mustache-react.public-path=http://localhost:18081/" > app.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf -o /dev/null http://localhost:18080/ && exit 0; sleep 2; done
+          cat app.log; exit 1
+      - run: pnpm e2e:cdn
+        env:
+          BASE_URL: http://localhost:18080
       - name: App log
         if: failure()
         run: cat app.log

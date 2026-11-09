@@ -27,6 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.samskivert.mustache.Mustache;
 
+import run.iknow.mustachereact.core.PageAssets;
 import run.iknow.mustachereact.core.SsrEngine;
 import run.iknow.mustachereact.core.ViteDevServer;
 import run.iknow.mustachereact.spring.DevServerFrontendAssets;
@@ -98,7 +99,7 @@ public class MustacheReactAutoConfiguration {
             ObjectProvider<ViteManifestSource> manifest) {
         MustacheReactProperties.DevServer dev = properties.getDevServer();
         if (dev.isEnabled()) {
-            String url = dev.getUrl().replaceAll("/+$", "") + "/" + properties.getPublicPath().replaceAll("^/+", "");
+            String url = dev.getUrl().replaceAll("/+$", "") + "/" + devServerPath(properties).replaceAll("^/+", "");
             LOGGER.info("mustache-react: loading the frontend from the Vite dev server at " + url);
             return new DevServerFrontendAssets(new ViteDevServer(url));
         }
@@ -313,8 +314,14 @@ public class MustacheReactAutoConfiguration {
         ViteDevServerProcess mustacheReactViteDevServer(MustacheReactProperties properties) {
             MustacheReactProperties.DevServer dev = properties.getDevServer();
             return new ViteDevServerProcess(new File(properties.getFrontendDir()).getAbsoluteFile(),
-                    URI.create(dev.getUrl()), properties.getPublicPath(), dev.getNode(),
+                    URI.create(dev.getUrl()), devServerPath(properties), dev.getNode(),
                     new File(dev.getNodeInstallDir()).getAbsoluteFile(), dev.getStartupTimeout().toMillis());
         }
+    }
+
+    /** A CDN URL in public-path is for deployments; the Vite dev server always serves under a path. */
+    static String devServerPath(MustacheReactProperties properties) {
+        String publicPath = properties.getPublicPath();
+        return PageAssets.isAbsolute(publicPath) ? "/mustache-react/" : publicPath;
     }
 }

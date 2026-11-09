@@ -37,7 +37,11 @@ public class MustacheReactProperties {
     /** Location of the Vite manifest written by the frontend build. */
     private String manifestLocation = "classpath:/static/mustache-react/.vite/manifest.json";
 
-    /** URL path the built frontend assets are served from. Must match the Vite {@code base}. */
+    /**
+     * Where pages load the built frontend assets from. A path ({@code /mustache-react/}, the default) serves them
+     * from the application jar; a URL ({@code https://cdn.example.com/shop/}) loads them from a CDN or another
+     * server where the same files were uploaded. The build is the same either way.
+     */
     private String publicPath = "/mustache-react/";
 
     /** Mustache layout for {@code @ReactPage} pages. The built-in layout is used when this resource does not exist. */
