@@ -26,6 +26,9 @@ First release: 0.1.0.
   or the Vite dev server in development; falls back to browser rendering per page or island, and restarts the
   sidecar when its process dies.
 - Warnings when the Java artifacts, `@mustache-react/client` or `@mustache-react/vite-plugin` have different versions.
+- Deployment: the frontend is built once with relative URLs; pages load it from the jar (default) or, with
+  `mustache-react.public-path=https://cdn.example.com/app/`, from a CDN where the same files were uploaded
+  (`crossorigin` tags, no rebuild).
 - Development mode: the application starts the Vite dev server; HMR for components, reload for Mustache templates.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 

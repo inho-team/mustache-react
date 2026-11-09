@@ -56,6 +56,9 @@ val buildWorkspacePackages by tasks.registering(Exec::class) {
 
 tasks.named("mustacheReactBuild") {
     dependsOn(buildWorkspacePackages)
+    // The frontend build output depends on the workspace packages too (the Vite plugin decides how files are
+    // built), not only on the example's own sources: rebuild, and do not reuse cached output, when they change.
+    inputs.files(buildWorkspacePackages.map { it.outputs.files }).withPropertyName("workspacePackages")
 }
 buildWorkspacePackages {
     onlyIf { mustacheReact.frontendBuild.get() }

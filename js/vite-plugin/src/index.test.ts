@@ -2,7 +2,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BUILD_INFO, DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, PLUGIN_VERSION, ssrEntrySource } from './index.js';
 
-type ConfigHook = (config: { root?: string }) => {
+type ConfigHook = (config: { root?: string }, env?: { command: 'build' | 'serve'; mode: string }) => {
   base: string;
   server: { port: number; strictPort: boolean; origin: string };
   optimizeDeps: { entries: string[] };
@@ -16,6 +16,19 @@ describe('mustacheReact', () => {
     expect(config.build.manifest).toBe(true);
     expect(config.build.outDir).toBe(path.resolve('/app/build/mustache-react/static/mustache-react'));
     expect(Object.keys(config.build.rollupOptions.input)).toEqual([ENTRY_NAME]);
+  });
+
+  it('builds with relative asset URLs, so the files work in the jar and on a CDN', () => {
+    const config = (mustacheReact({ base: '/assets/' }).config as unknown as ConfigHook)(
+      { root: '/app/src/main/frontend' },
+      { command: 'build', mode: 'production' },
+    );
+    expect(config.base).toBe('./');
+    const dev = (mustacheReact({ base: '/assets/' }).config as unknown as ConfigHook)(
+      { root: '/app/src/main/frontend' },
+      { command: 'serve', mode: 'development' },
+    );
+    expect(dev.base).toBe('/assets/');
   });
 
   it('serves on a fixed port with absolute asset URLs for pages served by Spring', () => {
