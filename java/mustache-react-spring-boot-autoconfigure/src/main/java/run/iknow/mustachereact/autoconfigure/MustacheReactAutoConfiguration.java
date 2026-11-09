@@ -283,6 +283,12 @@ public class MustacheReactAutoConfiguration {
                 properties.getTemplate().getHelpersName(), helpers);
     }
 
+    /** {@code <react:Name prop="{{path}}" />} in Mustache views, see {@link IslandTagCompilerPostProcessor}. */
+    @Bean
+    static BeanPostProcessor mustacheReactIslandTags(Environment environment) {
+        return new IslandTagCompilerPostProcessor(environment);
+    }
+
     /** Mustache views in UTF-8 whatever the request language, see {@link MustacheCharsetPostProcessor}. */
     @Bean
     static BeanPostProcessor mustacheReactMustacheCharset(Environment environment) {

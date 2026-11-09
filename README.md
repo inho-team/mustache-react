@@ -33,14 +33,15 @@ TS 타입은 annotation processor가 Java DTO에서 만듭니다. Java 필드 �
 기존 Mustache 화면에는 필요한 부분만 React로 넣을 수 있습니다. 컨트롤러는 평소처럼 Model만 채우면 됩니다.
 
 ```mustache
-{{#react}}OrderChart orders{{/react}}        {{! islands/OrderChart.tsx 에 model의 orders 전달 }}
+<!-- Mustache: {{변수}} 하나뿐인 값은 객체 그대로 props로 전달 -->
+<react:OrderChart orders="{{orders}}" currency="원" />
 
 {{#orders}}
   <td>{{customer}}</td>
-  <td>{{#react}}StatusBadge status orderId=id{{/react}}</td>
+  <td><react:StatusBadge status="{{status}}" order-id="{{id}}" /></td>
 {{/orders}}
 
-{{{mr.scripts}}}
+<react:scripts />
 ```
 
 > **상태:** 0.1.0 릴리스 준비가 끝난 상태입니다. 기능(`@ReactPage`, Mustache island, 폼과 서버 컨텍스트, SSR, DTO → TS 타입, HMR 개발 모드, Gradle/Maven 플러그인)과 배포 자동화가 갖춰졌고, 첫 배포는 저장소 관리자가 배포 계정을 설정한 뒤 진행합니다([RELEASING.md](RELEASING.md)).

@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{#mr.t}}dashboard.title{{/mr.t}}</title>
-  {{{mr.head}}}
+  {{! 엔트리 CSS (mr.head 와 같습니다) }}
+  <react:head />
 </head>
 <body>
 <main class="page">
@@ -12,8 +13,8 @@
   {{! 메시지는 messages.properties / messages_en.properties 에서 }}
   <p>{{#mr.t}}dashboard.intro{{/mr.t}}</p>
 
-  {{! islands/OrderChart.tsx 에 model의 orders, currency 를 props로 전달 }}
-  {{#react}}OrderChart orders currency{{/react}}
+  {{! islands/OrderChart.tsx. 값이 중괄호 변수 하나뿐이면 객체 그대로(리스트) 전달됩니다 }}
+  <react:OrderChart orders="{{orders}}" currency="{{currency}}" />
 
   <table>
     <thead><tr><th>{{#mr.t}}orders.column.id{{/mr.t}}</th><th>{{#mr.t}}orders.column.customer{{/mr.t}}</th><th>{{#mr.t}}orders.column.status{{/mr.t}}</th></tr></thead>
@@ -22,13 +23,14 @@
       <tr>
         <td>{{id}}</td>
         <td>{{customer}}</td>
-        {{! 루프 안에서는 현재 주문의 값을 먼저 찾습니다 }}
-        <td>{{#react}}StatusBadge status orderId=id{{/react}}</td>
+        {{! 루프 안에서는 현재 주문의 값을 먼저 찾습니다. order-id 는 prop orderId 가 됩니다 }}
+        <td><react:StatusBadge status="{{status}}" order-id="{{id}}" /></td>
       </tr>
     {{/orders}}
     </tbody>
   </table>
 </main>
-{{{mr.scripts}}}
+{{! 마지막 island 뒤에: 서버 컨텍스트와 React를 붙이는 스크립트 (mr.scripts 와 같습니다) }}
+<react:scripts />
 </body>
 </html>

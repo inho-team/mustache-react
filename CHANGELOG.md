@@ -10,7 +10,9 @@ First release: 0.1.0.
 ### Spring
 - `@ReactPage` renders a handler's return value as a React page; the same URL answers JSON to API clients. A
   returned `ResponseEntity` sets the status and headers of both.
-- `{{#react}}Name a b x=a.b{{/react}}` places React islands in Mustache views; `{{{mr.head}}}` / `{{{mr.scripts}}}`.
+- Mustache views place React islands as HTML tags, `<react:StatusBadge status="{{status}}" order-id="{{id}}" />`
+  (a lone `{{path}}` passes the model object, other values are text), or as `{{#react}}Name a x=a.b{{/react}}`
+  sections; `<react:head />` / `<react:scripts />` (or `{{{mr.head}}}` / `{{{mr.scripts}}}`).
 - Thymeleaf views: `<react:OrderChart orders="${orders}" currency="KRW" />` places an island with props from
   Thymeleaf expressions (objects, not strings), inside `th:each` / `th:if`; `<react:head />`, `<react:scripts />`.
   Registered automatically when Thymeleaf is on the classpath.
