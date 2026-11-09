@@ -30,6 +30,8 @@ First release: 0.1.0.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 
 ### Type generation
+- `@ReactIsland("StatusBadge")` on a props class writes `IslandProps<'StatusBadge'>`, and templates that pass an
+  unknown prop or leave out a required one fail with a message naming the island and its props.
 - `mustache-react-processor` writes TypeScript types for `@ReactPage` props and `@ReactType` classes, following
   Jackson's output (records, Lombok, generics, `@JsonProperty`, `@JsonIgnore`, `@Nullable`).
 

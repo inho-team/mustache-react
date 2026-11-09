@@ -32,4 +32,29 @@
 
 island props용 DTO에는 `@ReactType`을 붙이면 TypeScript 타입이 생성됩니다.
 
+## props 타입 선언 (`@ReactIsland`)
+
+island props를 Java 클래스로 선언하면 템플릿 양쪽이 검사됩니다.
+
+```java
+@ReactIsland("StatusBadge")
+public class StatusBadgeProps {
+    private OrderStatus status;
+    private long orderId;
+    @Nullable private String note;     // 생략 가능한 prop
+    // getter
+}
+```
+
+```tsx
+// islands/StatusBadge.tsx
+import type { IslandProps } from '../generated/types';
+export default function StatusBadge({ status, orderId }: IslandProps<'StatusBadge'>) { ... }
+```
+
+- **React 쪽:** `IslandProps<'StatusBadge'>` 타입이 `types.ts`에 생성되어 컴포넌트 코드가 타입 체크됩니다.
+- **템플릿 쪽:** 렌더링할 때 템플릿이 넘긴 props를 확인합니다. 오타(`statsu`)나 빠진 필수 prop이 있으면 화면이 에러로 멈추고 이렇게 알려줍니다: `island StatusBadge: unknown prop 'statsu', missing prop 'status'. Its @ReactIsland props are status, orderId, note (optional).`
+
+선언하지 않은 island는 지금처럼 아무 props나 받습니다.
+
 :::

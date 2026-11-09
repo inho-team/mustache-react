@@ -238,4 +238,41 @@ class TypeScriptProcessorTest {
         assertThat(result.success).isTrue();
         assertThat(result.output).isNull();
     }
+
+    @Test
+    void declaresIslandPropsForTypeScriptAndForTheTemplateCheck() throws Exception {
+        Compilation result = Compilation.compile(workDir, sources(
+                "app.StatusBadgeProps", "package app;\n"
+                        + "@run.iknow.mustachereact.spring.ReactIsland(\"StatusBadge\")\n"
+                        + "public class StatusBadgeProps {\n"
+                        + "  public String getStatus() { return null; }\n"
+                        + "  public long getOrderId() { return 0; }\n"
+                        + "  @Nullable public String getNote() { return null; }\n"
+                        + "  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @interface Nullable { }\n"
+                        + "}\n",
+                "app.ChartProps", "package app;\n"
+                        + "@run.iknow.mustachereact.spring.ReactIsland(\"charts/OrderChart\")\n"
+                        + "public class ChartProps { public java.util.List<Integer> getValues() { return null; } }\n"));
+
+        assertThat(result.success).as(result.diagnostics).isTrue();
+        assertThat(result.output)
+                .contains("export interface StatusBadgeProps {\n  status: string;\n  orderId: number;\n  note: string | null;\n}\n")
+                .contains("export interface ReactIslands {\n"
+                        + "  'StatusBadge': StatusBadgeProps;\n"
+                        + "  'charts/OrderChart': ChartProps;\n"
+                        + "}\n")
+                .contains("export type IslandProps<I extends keyof ReactIslands> = ReactIslands[I];\n");
+        Path islands = workDir.resolve("classes/" + TypeScriptProcessor.ISLANDS_RESOURCE);
+        assertThat(new String(Files.readAllBytes(islands), java.nio.charset.StandardCharsets.UTF_8))
+                .contains("StatusBadge=status,orderId,note?\n").contains("charts/OrderChart=values\n");
+    }
+
+    @Test
+    void withoutIslandsTheTypesHaveNoIslandSection() throws Exception {
+        Compilation result = Compilation.compile(workDir, sources("app.OrderController", CONTROLLER,
+                "app.OrderListResponse", RESPONSE, "app.Paged", PAGED, "app.Order", ORDER));
+
+        assertThat(result.output).doesNotContain("ReactIslands");
+        assertThat(workDir.resolve("classes/" + TypeScriptProcessor.ISLANDS_RESOURCE)).doesNotExist();
+    }
 }

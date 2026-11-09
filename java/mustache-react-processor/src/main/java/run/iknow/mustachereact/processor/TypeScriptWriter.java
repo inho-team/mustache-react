@@ -75,6 +75,8 @@ final class TypeScriptWriter {
     private final Map<String, String> declarations = new TreeMap<>();
     /** Page name → props type. */
     private final Map<String, String> pages = new TreeMap<>();
+    /** Island name → props type. */
+    private final Map<String, String> islands = new TreeMap<>();
 
     TypeScriptWriter(ProcessingEnvironment env) {
         this.types = env.getTypeUtils();
@@ -86,6 +88,20 @@ final class TypeScriptWriter {
 
     void page(String page, TypeMirror props) {
         pages.put(page, props == null ? "Record<string, never>" : type(props));
+    }
+
+    /**
+     * Declares the props type of an island.
+     *
+     * @return the JSON property names, nullable ones followed by {@code ?}
+     */
+    List<String> island(String island, TypeElement props) {
+        islands.put(island, declaredName(props));
+        List<String> names = new ArrayList<>();
+        for (Map.Entry<String, String> property : properties(props).entrySet()) {
+            names.add(property.getKey() + (property.getValue().endsWith(" | null") ? "?" : ""));
+        }
+        return names;
     }
 
     String render() {
@@ -104,6 +120,17 @@ final class TypeScriptWriter {
         sb.append("}\n\n");
         sb.append("/** Props of a page, e.g. `PageProps<'orders/OrderList'>`. */\n");
         sb.append("export type PageProps<P extends keyof ReactPages> = ReactPages[P];\n");
+        if (!islands.isEmpty()) {
+            sb.append("\n/** Props of each @ReactIsland, by island name. */\n");
+            sb.append("export interface ReactIslands {\n");
+            for (Map.Entry<String, String> island : islands.entrySet()) {
+                sb.append("  '").append(island.getKey().replace("\\", "\\\\").replace("'", "\\'")).append("': ")
+                        .append(island.getValue()).append(";\n");
+            }
+            sb.append("}\n\n");
+            sb.append("/** Props of an island, e.g. `IslandProps<'StatusBadge'>`. */\n");
+            sb.append("export type IslandProps<I extends keyof ReactIslands> = ReactIslands[I];\n");
+        }
         return sb.toString();
     }
 
