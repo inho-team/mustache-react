@@ -371,6 +371,21 @@ public class MustacheReactProperties {
         /** Model name of the helpers: {@code {{{mr.head}}}}, {@code {{{mr.scripts}}}}. */
         private String helpersName = "mr";
 
+        /**
+         * Whether Mustache templates may write islands as HTML tags:
+         * {@code <react:StatusBadge status="{{status}}" />}, {@code <react:head />}, {@code <react:scripts />}.
+         * The tag prefix is the island section name ({@code react-name}).
+         */
+        private boolean htmlTags = true;
+
+        public boolean isHtmlTags() {
+            return htmlTags;
+        }
+
+        public void setHtmlTags(boolean htmlTags) {
+            this.htmlTags = htmlTags;
+        }
+
         /** Element prefix of islands in Thymeleaf templates: {@code <react:OrderChart orders="${orders}" />}. */
         private String thymeleafPrefix = "react";
 

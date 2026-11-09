@@ -3,6 +3,7 @@ package run.iknow.mustachereact.spring;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,6 +52,10 @@ public class ReactIslandLambda implements Mustache.Lambda {
     @Override
     public void execute(Template.Fragment fragment, Writer out) throws IOException {
         String source = fragment.decompile();
+        if (HtmlIslandTags.isTag(source)) {
+            out.write(renderTag(fragment, source));
+            return;
+        }
         IslandTag tag = parsed.get(source);
         if (tag == null) {
             tag = IslandTag.parse(source);
@@ -72,5 +77,48 @@ public class ReactIslandLambda implements Mustache.Lambda {
         }
 
         out.write(islands.render(tag.component, props));
+    }
+
+    /** {@code <react:Name a="{{path}}" b="text {{x}}" flag />}, see {@link HtmlIslandTags}. */
+    private String renderTag(Template.Fragment fragment, String source) {
+        HtmlIslandTags.Tag tag = HtmlIslandTags.parse(source);
+        // The tag rendered by Mustache gives the text values, with {{...}} filled in and escaped.
+        List<String[]> rendered = null;
+        Map<String, Object> props = new LinkedHashMap<>();
+        for (int i = 0; i < tag.attributes.size(); i++) {
+            HtmlIslandTags.Attribute attribute = tag.attributes.get(i);
+            Object value;
+            if (attribute.flag) {
+                value = Boolean.TRUE;
+            } else if (attribute.path != null) {
+                value = ContextPaths.resolve(fragment, attribute.path);
+                if (value == ContextPaths.MISSING) {
+                    throw new IllegalArgumentException(source.trim() + ": '" + attribute.path
+                            + "' was not found in the model or the enclosing sections.");
+                }
+            } else {
+                if (rendered == null) {
+                    String html = fragment.execute();
+                    rendered = HtmlIslandTags.attributes(html.substring(html.indexOf(':') + 1).replaceFirst("^\\S+", ""));
+                }
+                value = HtmlIslandTags.unescape(textValue(rendered, tag, i));
+            }
+            props.put(attribute.prop, value);
+        }
+        return islands.render(tag.component, props);
+    }
+
+    /** The rendered value of the i-th prop attribute, skipping {@code component} of {@code <react:island>}. */
+    private static String textValue(List<String[]> rendered, HtmlIslandTags.Tag tag, int index) {
+        int seen = -1;
+        for (String[] attribute : rendered) {
+            if (tag.named && attribute[0].equals("component")) {
+                continue;
+            }
+            if (++seen == index) {
+                return attribute[1] == null ? "" : attribute[1];
+            }
+        }
+        return "";
     }
 }
