@@ -13,15 +13,19 @@ hero:
       link: https://github.com/inho-team/mustache-react
 features:
   - title: '@ReactPage'
-    details: 기존 API 메서드에 어노테이션 하나. 브라우저에는 React 페이지, API 클라이언트에는 원래 JSON을 응답합니다.
-  - title: Mustache island
-    details: '기존 Mustache 화면에 {{#react}}OrderChart orders{{/react}}처럼 필요한 부분만 React로 넣습니다.'
+    details: 기존 API 메서드에 어노테이션 하나. 브라우저에는 React 페이지, API 클라이언트에는 원래 JSON을 응답합니다. ResponseEntity로 상태 코드와 헤더도 그대로.
+  - title: Mustache + React 태그
+    details: '기존 Mustache 화면에 <react:OrderChart orders="{{orders}}" />처럼 필요한 부분만 React로 넣습니다. 값은 객체 그대로 전달됩니다.'
   - title: Spring 연동
-    details: CSRF, 로그인 사용자, @Valid 검증 에러, redirect:, MessageSource를 그대로 씁니다.
+    details: CSRF, 로그인 사용자, @Valid 검증 에러, redirect:, @RequestBody와 @ModelAttribute 폼을 그대로 씁니다.
+  - title: 다국어
+    details: messages.properties를 React, Mustache, 페이지 제목에서 함께 씁니다. ?lang=en으로 언어를 바꾸고 쿠키에 기억합니다.
   - title: DTO → TypeScript
-    details: Java DTO에서 TS 타입을 생성합니다. 필드 이름을 바꾸면 TS 컴파일 에러로 드러납니다.
+    details: Java DTO와 @ReactIsland에서 TS 타입을 생성하고, 템플릿이 넘긴 props도 서버에서 검사합니다.
   - title: 설정 없는 빌드
-    details: Gradle/Maven 플러그인이 Node.js를 받고 프론트를 빌드해 jar에 넣습니다. vite.config도 필요 없습니다.
+    details: Gradle/Maven 플러그인이 Node.js를 받고 package.json까지 만들어 프론트를 빌드해 jar에 넣습니다.
   - title: SSR과 HMR
-    details: Node 사이드카로 서버 렌더링, 개발 중에는 Vite dev server로 즉시 반영. Java 8, Spring Boot 2.7~4.x.
+    details: Node 사이드카로 서버 렌더링(실패 시 브라우저 렌더링), 개발 중에는 Vite dev server로 즉시 반영합니다.
+  - title: 같이 또는 따로 배포
+    details: jar 하나로 배포하거나, 같은 빌드 결과를 CDN에 올리고 public-path 한 줄로 바꿉니다. Java 8, Spring Boot 2.7~4.x.
 ---
