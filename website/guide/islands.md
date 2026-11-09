@@ -2,7 +2,21 @@
 
 ::: v-pre
 
-기존 Mustache 화면에 필요한 부분만 React로 넣습니다. 컨트롤러는 평소처럼 Model만 채웁니다. React 컴포넌트는 HTML 태그처럼 씁니다.
+기존 Mustache 화면은 그대로 두고, 인터랙션이 필요한 부분(차트, 필터, 버튼, 실시간 배지)만 React 컴포넌트로 넣는 방식입니다. 이렇게 화면 안에 박힌 작은 React 영역을 **island**라고 부릅니다. 컨트롤러는 평소처럼 Model만 채우고 뷰 이름을 반환합니다.
+
+```java
+@Controller
+public class DashboardController {
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("orders", orders.findAll());
+        model.addAttribute("currency", "원");
+        return "dashboard";   // templates/dashboard.mustache
+    }
+}
+```
+
+React 컴포넌트는 템플릿에 HTML 태그처럼 씁니다.
 
 ```mustache
 <head> ... <react:head /> </head>
@@ -46,6 +60,65 @@
 | `{{#react}}이름 item=this{{/react}}` | 현재 루프 항목 전체를 `item`으로 |
 
 `react`, `mr`는 모든 Model에 자동으로 들어갑니다. 이름은 `mustache-react.template.react-name`(태그 접두어도 이것을 따릅니다), `helpers-name`으로 바꿉니다. 태그 문법은 `mustache-react.template.html-tags=false`로 끌 수 있습니다.
+
+## 컴포넌트 파일
+
+```tsx
+// src/main/frontend/islands/StatusBadge.tsx
+import { useState } from 'react';
+import type { IslandProps } from '../generated/types';
+
+export default function StatusBadge({ status, orderId }: IslandProps<'StatusBadge'>) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button type="button" onClick={() => setOpen(!open)}>
+      {status}{open && ` · 주문 #${orderId}`}
+    </button>
+  );
+}
+```
+
+- `islands/` 아래 파일이고 **default export**여야 합니다. 하위 폴더는 `<react:island component="charts/OrderChart" />`로 씁니다.
+- props는 템플릿이 넘긴 값입니다. 타입은 [`@ReactIsland`](#props-타입-선언-reactisland)로 선언하면 생성됩니다.
+
+## 여러 island와 반복문
+
+- 한 화면에 island를 몇 개든 둘 수 있습니다. 같은 컴포넌트를 여러 번 써도 됩니다.
+- `{{#orders}} ... {{/orders}}` 안의 island는 반복마다 하나씩 생기고, 값은 **현재 항목부터** 찾습니다. 위 예에서 `{{status}}`는 그 줄 주문의 상태입니다.
+- 현재 항목 전체를 넘기려면 `order="{{this}}"`(섹션 문법은 `item=this`)를 씁니다.
+- 바깥 값도 그대로 찾을 수 있습니다. 반복 안에서 `currency="{{currency}}"`는 항목에 없으면 Model의 `currency`입니다.
+
+## 불러오는 방식
+
+1. 서버가 island 자리에 `<div data-mr-island="islands/StatusBadge">`와 props JSON을 씁니다. 서버 렌더링이 켜져 있으면 그 안에 컴포넌트를 HTML로 미리 그려 넣습니다.
+2. `<react:scripts />`(또는 `{{{mr.scripts}}}`)가 서버 컨텍스트와 엔트리 스크립트를 쓰고, **이 페이지에서 쓴 island의 파일만** 미리 받도록 표시합니다.
+3. 브라우저에서 엔트리 스크립트가 각 island 파일을 따로 불러와 그 자리에 마운트합니다. 서버에서 그려진 island는 hydration, 아니면 새로 렌더링합니다.
+4. 한 island가 실패해도 다른 island는 정상 동작합니다. 실패는 브라우저 콘솔에 남고, 개발 모드에서는 그 자리에 오류 상자가 나옵니다.
+
+그래서 `<react:scripts />`는 **마지막 island보다 뒤**(보통 `</body>` 바로 앞)에 둡니다. 앞에 두면 그 뒤의 island 파일은 미리 받지 못합니다(동작은 하지만 느려집니다).
+
+## island끼리 상태 공유
+
+각 island는 따로 마운트된 독립된 React 트리입니다. `useState`나 Context는 island 사이에 공유되지 않습니다. 함께 움직여야 하면:
+
+| 방법 | 언제 |
+|---|---|
+| 서버가 같은 값을 둘 다에 props로 넘기기 | 처음 값만 같으면 될 때 |
+| 공유 모듈(`components/store.ts`)의 상태 라이브러리(zustand, jotai 등) | 클릭에 따라 서로 바뀌어야 할 때. 같은 번들이라 모듈 상태가 공유됩니다 |
+| URL 쿼리(`?status=PAID`) + 페이지 새로고침 | 필터처럼 서버 데이터가 바뀌어야 할 때 |
+| `window.dispatchEvent(new CustomEvent(...))` | 아주 단순한 알림 |
+
+여러 island가 긴밀하게 얽힌 화면이라면 화면 전체를 [`@ReactPage`](./pages)로 만드는 편이 낫습니다.
+
+## 스타일
+
+- `app.tsx`에서 `import './app.css'`처럼 불러온 CSS는 모든 화면에 들어가고 `<react:head />`가 `<link>`로 씁니다.
+- 컴포넌트 파일에서 불러온 CSS(`import './StatusBadge.css'`)는 그 island를 쓰는 화면에서만 불러옵니다.
+- Mustache 화면의 기존 CSS도 island 안 요소에 그대로 적용됩니다.
+
+## 서버 컨텍스트와 다국어
+
+island 안에서도 `useServerContext()`(로그인 사용자, CSRF), `useMessages()`(메시지)를 쓸 수 있습니다. 값은 `<react:scripts />`가 함께 내려줍니다. [폼과 서버 컨텍스트](./forms), [다국어](./i18n) 참고.
 
 island props용 DTO에는 `@ReactType`을 붙이면 TypeScript 타입이 생성됩니다.
 

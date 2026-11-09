@@ -1,5 +1,7 @@
 # 시작하기
 
+::: v-pre
+
 ## 요구 사항
 
 | | |
@@ -105,6 +107,38 @@ export default function Hello({ message, frameworks }: PageProps<'Hello'>) {
 }
 ```
 
+### Mustache island 예제
+
+```java
+@Controller
+public class DashboardController {
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("orders", orders.findAll());
+        return "dashboard";
+    }
+}
+```
+
+```html
+<!-- src/main/resources/templates/dashboard.mustache -->
+<html>
+<head><react:head /></head>
+<body>
+  <h1>대시보드</h1>
+  <react:OrderChart orders="{{orders}}" />
+  <react:scripts />
+</body>
+</html>
+```
+
+```tsx
+// src/main/frontend/islands/OrderChart.tsx
+export default function OrderChart({ orders }: { orders: { id: number; amount: number }[] }) {
+  return <ul>{orders.map((o) => <li key={o.id}>{o.amount}</li>)}</ul>;
+}
+```
+
 ## 4. 실행과 배포
 
 ```bash
@@ -115,3 +149,22 @@ export default function Hello({ message, frameworks }: PageProps<'Hello'>) {
 `http://localhost:8080/`을 브라우저로 열면 React 페이지가, `curl`로 부르면 JSON이 나옵니다.
 
 개발 중에는 [개발 모드](./development)로 실행하면 코드 수정이 바로 반영됩니다.
+
+## 다음 단계
+
+| 알고 싶은 것 | 문서 |
+|---|---|
+| 요청이 어떻게 처리되는지 | [동작 원리](./how-it-works) |
+| `@ReactPage`의 모든 기능 (상태 코드, 레이아웃, JSON 응답) | [@ReactPage 페이지](./pages) |
+| Mustache 화면에 React 넣기 | [Mustache island](./islands) |
+| 폼, 검증 에러, 로그인 사용자, CSRF | [폼과 서버 컨텍스트](./forms) |
+| 차트, UI 라이브러리, CSS 쓰기 | [React 라이브러리 쓰기](./libraries) |
+| 한국어/영어 | [다국어](./i18n) |
+| 기존 프로젝트에 도입 | [기존 프로젝트에 도입하기](./adoption) |
+| 테스트 작성 | [테스트](./testing) |
+| 보안 (XSS, CSRF, 노출되는 값) | [보안](./security) |
+| 안 될 때 | [문제 해결](./troubleshooting) |
+| 운영 배포, CDN | [배포](./deployment) |
+| 모든 설정값, API | [설정](../reference/configuration), [Java API](../reference/java-api), [JavaScript API](../reference/javascript-api) |
+
+:::
