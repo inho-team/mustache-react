@@ -29,6 +29,8 @@ dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
     implementation(project(":mustache-react-spring-boot-starter"))
     implementation("org.springframework.boot:spring-boot-starter-security")
+    // Thymeleaf views with <react:Name> islands (/board); Mustache views keep working next to them.
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

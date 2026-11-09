@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 
-import run.iknow.mustachereact.core.IslandMarkup;
 
 /**
  * The {@code {{#react}}...{{/react}}} section: renders a React component from {@code src/main/frontend/islands}
@@ -28,11 +27,9 @@ import run.iknow.mustachereact.core.IslandMarkup;
 public class ReactIslandLambda implements Mustache.Lambda {
 
     /** Prefix added to island names: {@code OrderChart} is the file {@code islands/OrderChart.tsx}. */
-    public static final String ISLANDS_DIRECTORY = "islands/";
+    public static final String ISLANDS_DIRECTORY = IslandRenderer.ISLANDS_DIRECTORY;
 
-    private final PropsSerializer propsSerializer;
-    private final ServerSideRendering ssr;
-    private final ServerContextFactory serverContext;
+    private final IslandRenderer islands;
     private final Map<String, IslandTag> parsed = new ConcurrentHashMap<>();
 
     /**
@@ -48,9 +45,7 @@ public class ReactIslandLambda implements Mustache.Lambda {
      * @param serverContext the server context given to server-side rendering
      */
     public ReactIslandLambda(PropsSerializer propsSerializer, ServerSideRendering ssr, ServerContextFactory serverContext) {
-        this.propsSerializer = propsSerializer;
-        this.ssr = ssr;
-        this.serverContext = serverContext;
+        this.islands = new IslandRenderer(propsSerializer, ssr, serverContext, null);
     }
 
     @Override
@@ -76,12 +71,6 @@ public class ReactIslandLambda implements Mustache.Lambda {
             props.put(prop.getKey(), value);
         }
 
-        String component = ISLANDS_DIRECTORY + tag.component;
-        IslandRequestState state = IslandRequestState.current();
-        String id = state.register(component);
-        String propsJson = propsSerializer.serialize(props);
-        String ssrHtml = ssr.render(component, propsJson,
-                () -> state.contextJson(() -> serverContext == null ? "{}" : serverContext.json(null)));
-        out.write(IslandMarkup.render(component, id, propsJson, ssrHtml));
+        out.write(islands.render(tag.component, props));
     }
 }
