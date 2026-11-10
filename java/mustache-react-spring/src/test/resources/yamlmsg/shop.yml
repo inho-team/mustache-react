@@ -1,0 +1,10 @@
+app:
+  name: 가게
+orders:
+  title: 주문 목록
+  count: "주문 {0}건"
+  quote: "It''s {0}"
+  limit: 5
+  steps:
+    - 담기
+    - 결제

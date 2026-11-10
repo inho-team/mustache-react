@@ -33,6 +33,8 @@ First release: 0.1.0.
 - Hardening: the SSR server only answers the application that started it (a random token passed in the
   environment); a dev server port taken by another program is reported; `public/` files trigger a build warning;
   `messages.properties` changes show up without a restart in development.
+- Messages in YAML: `messages.yml`, `messages_en.yml`, ... with nested keys (`orders.title`), alone or next to
+  `messages.properties` (which wins); same formatting, patterns and development reloading.
 - Development mode: the application starts the Vite dev server; HMR for components, reload for Mustache templates.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 

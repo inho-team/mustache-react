@@ -1,7 +1,6 @@
 # 문제 해결
 
-::: v-pre
-
+:::: v-pre
 자주 만나는 오류와 해결 방법입니다. 오류 메시지는 로그나 화면에 나오는 영문 그대로 적었습니다. 검색(<kbd>Ctrl</kbd>+<kbd>K</kbd>)으로 메시지 일부를 찾아보세요.
 
 ## 빌드
@@ -124,9 +123,19 @@ Spring Boot의 Mustache 뷰는 charset 없이 `text/html`을 보내서, 요청 �
 
 `messages.properties`가 한국어이고 `messages_en.properties`가 있을 때, 서버 OS 언어가 영어면 Spring이 `messages_en`으로 대신합니다. 끕니다.
 
-```properties
+::: code-group
+
+```properties [application.properties]
 spring.messages.fallback-to-system-locale=false
 ```
+
+```yaml [application.yml]
+spring:
+  messages:
+    fallback-to-system-locale: false
+```
+
+:::
 
 ### `?lang=en`이 동작하지 않는다
 
@@ -177,18 +186,40 @@ Node.js 프로세스가 종료되어 다시 띄우는 중입니다(최대 10초�
 
 5173 포트에 이미 Vite 개발 서버가 떠 있으면 mustache-react는 그것을 씁니다. 다른 프로젝트의 개발 서버일 수 있으니 확인하세요. Vite가 아닌 프로그램이 그 포트를 쓰고 있으면 시작할 때 이런 에러 로그가 남습니다: `port 5173 is used by another program, not by a Vite dev server`. 포트를 바꾸려면:
 
-```properties
+::: code-group
+
+```properties [application.properties]
 mustache-react.dev-server.url=http://localhost:5199
 ```
+
+```yaml [application.yml]
+mustache-react:
+  dev-server:
+    url: http://localhost:5199
+```
+
+:::
 
 ### Mustache 템플릿을 고쳐도 반영되지 않는다
 
 개발 프로필에 다음이 있는지 확인합니다. 없으면 jar 안의 템플릿을 캐시해서 씁니다.
 
-```properties
+::: code-group
+
+```properties [application.properties]
 spring.mustache.prefix=file:src/main/resources/templates/
 spring.mustache.servlet.cache=false
 ```
+
+```yaml [application.yml]
+spring:
+  mustache:
+    prefix: file:src/main/resources/templates/
+    servlet:
+      cache: false
+```
+
+:::
 
 ## 배포
 
@@ -201,4 +232,4 @@ spring.mustache.servlet.cache=false
 
 다른 도메인의 JS 모듈은 CORS 헤더가 필요합니다. CDN 응답에 `Access-Control-Allow-Origin`을 추가합니다. [배포](./deployment) 참고.
 
-:::
+::::

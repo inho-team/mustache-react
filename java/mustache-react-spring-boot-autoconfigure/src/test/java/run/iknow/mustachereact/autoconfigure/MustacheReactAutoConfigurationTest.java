@@ -159,4 +159,24 @@ class MustacheReactAutoConfigurationTest {
                 .run(context -> assertThat(org.springframework.test.util.ReflectionTestUtils.getField(
                         context.getBean("messageSource"), "cacheMillis")).isEqualTo(-1L));
     }
+
+    @Test
+    void readsMessagesFromYaml() {
+        org.springframework.boot.test.context.runner.ApplicationContextRunner messages =
+                new org.springframework.boot.test.context.runner.ApplicationContextRunner().withConfiguration(
+                        AutoConfigurations.of(MustacheReactMessagesAutoConfiguration.class,
+                                org.springframework.boot.autoconfigure.context.MessageSourceAutoConfiguration.class));
+        // Only YAML: it is the message source.
+        messages.withPropertyValues("spring.messages.basename=yamlonly/messages").run(context -> {
+            assertThat(context.getBean("messageSource")).isInstanceOf(run.iknow.mustachereact.spring.YamlMessageSource.class);
+            assertThat(context.getMessage("greeting.hello", new Object[] {"김"}, java.util.Locale.KOREAN)).isEqualTo("안녕 김");
+        });
+        // Properties and YAML: properties first, YAML for the rest.
+        messages.withPropertyValues("spring.messages.basename=mixed/messages").run(context -> {
+            assertThat(context.getBean("messageSource"))
+                    .isInstanceOf(org.springframework.context.support.ResourceBundleMessageSource.class);
+            assertThat(context.getMessage("greeting.hello", new Object[] {"Kim"}, java.util.Locale.ENGLISH)).isEqualTo("Hello Kim");
+            assertThat(context.getMessage("greeting.bye", null, java.util.Locale.ENGLISH)).isEqualTo("잘 가");
+        });
+    }
 }

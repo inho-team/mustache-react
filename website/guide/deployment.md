@@ -18,10 +18,20 @@ java -jar build/libs/app.jar
    - Gradle: `build/mustache-react/resources/static/mustache-react/`
    - Maven: `target/mustache-react/static/mustache-react/`
 3. **Spring 설정:** 올린 위치를 알려줍니다. 운영 프로필에만 넣으면 됩니다.
-   ```properties
+   ::: code-group
+
+   ```properties [application-prod.properties]
    # application-prod.properties
    mustache-react.public-path=https://cdn.example.com/shop/
    ```
+
+   ```yaml [application-prod.yml]
+   # application-prod.yml
+   mustache-react:
+     public-path: https://cdn.example.com/shop/
+   ```
+
+   :::
 4. **CDN 설정:** 다른 도메인에서 JS 모듈을 불러오므로 CORS 헤더가 필요합니다.
    ```
    Access-Control-Allow-Origin: https://shop.example.com    (또는 *)

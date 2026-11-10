@@ -106,12 +106,28 @@ export default function StatusBadge({ status, orderId }: { status: string; order
 
 ## 3. 개발 환경
 
-```properties
+::: code-group
+
+```properties [application-dev.properties]
 # src/main/resources/application-dev.properties
 mustache-react.dev-server.enabled=true
 spring.mustache.prefix=file:src/main/resources/templates/
 spring.mustache.servlet.cache=false
 ```
+
+```yaml [application-dev.yml]
+# src/main/resources/application-dev.yml
+mustache-react:
+  dev-server:
+    enabled: true
+spring:
+  mustache:
+    prefix: file:src/main/resources/templates/
+    servlet:
+      cache: false
+```
+
+:::
 
 ```bash
 ./gradlew bootRun --args=--spring.profiles.active=dev

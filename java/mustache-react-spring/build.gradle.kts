@@ -16,6 +16,7 @@ dependencies {
 
     testImplementation("org.springframework:spring-web")
     testImplementation("org.springframework:spring-context")
+    testImplementation("org.yaml:snakeyaml")
     testImplementation("com.samskivert:jmustache")
     testImplementation("org.springframework.security:spring-security-web")
 }
