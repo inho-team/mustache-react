@@ -32,6 +32,7 @@ public class MessagesContextContributor implements ServerContextContributor {
     private final boolean all;
     private final Supplier<? extends Collection<String>> bundleKeys;
     private volatile Set<String> expanded;
+    private volatile boolean cache = true;
 
     /**
      * @param messageSource the application's messages
@@ -65,10 +66,19 @@ public class MessagesContextContributor implements ServerContextContributor {
     }
 
     /**
+     * @param cache whether patterns are expanded once; {@code false} expands them for every page (development)
+     * @return this
+     */
+    public MessagesContextContributor cache(boolean cache) {
+        this.cache = cache;
+        return this;
+    }
+
+    /**
      * @return the keys written into every page, with the patterns expanded
      */
     public Set<String> keys() {
-        Set<String> result = expanded;
+        Set<String> result = cache ? expanded : null;
         if (result == null) {
             result = new LinkedHashSet<>(keys);
             if (all || !prefixes.isEmpty()) {
