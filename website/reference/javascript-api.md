@@ -277,7 +277,7 @@ SSR 번들(`server.mjs`) 안에서 쓰입니다. 플러그인이 진입 코드�
 | 이름 | 역할 |
 |---|---|
 | `createRenderer({ components, wrapper })` | `{component, props, context}`를 HTML로 렌더링하는 함수를 만듭니다. 브라우저와 같은 트리(래퍼 > 컴포넌트)에 `ServerContextProvider`를 더합니다 |
-| `startServer(render, port, host = '127.0.0.1')` | `POST /__mustache-react/render` HTTP 서버 |
+| `startServer(render, port, host = '127.0.0.1', token = process.env.MUSTACHE_REACT_SSR_TOKEN)` | `POST /__mustache-react/render` HTTP 서버. 토큰이 있으면 `X-Mustache-React-Token` 헤더가 같은 요청만 받습니다(아니면 403) |
 | `handleRender`, `readBody`, `portFromArgs`, `RENDER_PATH` | 위 서버의 부품. 개발 서버 미들웨어도 같은 `handleRender`를 씁니다 |
 
 렌더 요청은 `{component, props, context}`, 응답은 `{html}`(실패 시 500과 `{error}`)입니다.

@@ -11,10 +11,9 @@ mustache-react.dev-server.enabled=true
 # Mustache 템플릿을 jar가 아니라 소스에서 읽어, 고치면 바로 반영
 spring.mustache.prefix=file:src/main/resources/templates/
 spring.mustache.servlet.cache=false
-
-# (선택) messages.properties 변경을 재시작 없이 반영
-spring.messages.cache-duration=1s
 ```
+
+`messages.properties`는 개발 모드에서 따로 설정하지 않아도 재시작 없이 반영됩니다. Spring의 메시지 캐시가 1초로 줄고(`spring.messages.cache-duration`을 직접 두면 그 값을 씁니다), `orders.*` 같은 패턴도 페이지마다 다시 펼칩니다. 단, 고친 파일이 클래스패스에 복사되어야 합니다(IDE의 빌드, 또는 `./gradlew processResources`).
 
 ## 실행
 
@@ -67,7 +66,7 @@ cd src/main/frontend && npx mustache-react-vite dev
 |---|---|
 | 컴포넌트, CSS | 즉시 (HMR) |
 | Mustache 템플릿 | 즉시 (위 `spring.mustache.*` 설정 시 새로고침) |
-| `messages.properties` 내용 | `spring.messages.cache-duration`을 짧게 두면 다음 요청부터. 단 `mustache-react.context.messages`의 `orders.*` 같은 패턴에 **새 키를 추가**하면 재시작해야 화면에 내려갑니다 |
+| `messages.properties` 내용, 새 키 | 파일이 클래스패스에 복사된 뒤 1초 안에 다음 요청부터 (재시작 불필요) |
 | `@ReactPage` 레이아웃 (`layout.mustache`) | 새로고침 (개발 모드에서는 페이지마다 다시 읽음) |
 | `package.json` (라이브러리 추가) | 의존성 설치 후 재시작 |
 | Java 코드, `application.properties` | 재시작 |
@@ -79,6 +78,7 @@ cd src/main/frontend && npx mustache-react-vite dev
 | `cannot start the Vite dev server: ... not found` | `node_modules`가 없음. 일반 빌드(`./gradlew build`)를 한 번 돌려 의존성을 설치하세요 |
 | `could not start the Vite dev server with 'node'` | Node.js를 못 찾음. 빌드를 한 번 돌리면 플러그인이 내려받습니다 |
 | `did not listen on localhost:5173` | 시작이 느리거나 실패. 로그 위쪽의 Vite 오류를 확인하고 `startup-timeout`을 늘리세요 |
-| 다른 프로젝트 화면이 뜸 | 5173 포트에 다른 프로젝트의 개발 서버가 떠 있어 그것을 씀. 끄거나 `dev-server.url` 포트를 바꾸세요 |
+| 다른 프로젝트 화면이 뜸 | 5173 포트에 다른 프로젝트의 Vite 개발 서버가 떠 있어 그것을 씀. 끄거나 `dev-server.url` 포트를 바꾸세요 |
+| `port 5173 is used by another program, not by a Vite dev server` | Vite가 아닌 프로그램이 그 포트를 씀. 그 프로그램을 끄거나 `dev-server.url` 포트를 바꾸세요 |
 | 화면이 비고 콘솔에 `No component file for "pages/..."` | `@ReactPage` 이름과 파일 경로가 다름 |
 | 운영 jar에서 화면이 안 뜸 | `dev-server.enabled=true`가 기본 설정에 들어감. 개발 프로필로 옮기세요 |
