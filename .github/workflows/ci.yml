@@ -27,15 +27,15 @@ jobs:
           - { boot: 3.5.16, java: 17 }
           - { boot: 4.1.2, java: 21 }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           # The last entry becomes JAVA_HOME and runs Gradle; the matrix JDK runs the tests.
           java-version: |
             ${{ matrix.java }}
             21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Build and test
         run: >
           ./gradlew build
@@ -53,7 +53,7 @@ jobs:
           fi
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports-boot-${{ matrix.boot }}-java-${{ matrix.java }}
           path: '**/build/reports/tests/'
@@ -63,17 +63,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           # 17 runs the Gradle 7.6 compatibility test; 21 runs the build.
           java-version: |
             17
             21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Gradle 7.6.4 for the compatibility test
+        uses: actions/cache@v5
+        with:
+          path: ~/gradle-7.6.4
+          key: gradle-7.6.4-bin
+      - name: Download Gradle 7.6.4 (with retries; GitHub's download sometimes answers 504)
+        run: |
+          if [ ! -d ~/gradle-7.6.4/lib ]; then
+            curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o gradle-7.6.4-bin.zip https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+            python3 -m zipfile -e gradle-7.6.4-bin.zip ~ || python -m zipfile -e gradle-7.6.4-bin.zip ~
+            rm gradle-7.6.4-bin.zip
+          fi
       - name: Test the build tools and the Gradle plugin
-        run: ./gradlew -p build-plugins build -PtestGradle7JavaHome=$JAVA_HOME_17_X64
+        run: ./gradlew -p build-plugins build -PtestGradle7JavaHome=$JAVA_HOME_17_X64 -PtestGradle7Home=$HOME/gradle-7.6.4
 
   maven:
     name: Maven example (Boot ${{ matrix.boot }})
@@ -86,15 +98,15 @@ jobs:
           - { boot: 2.7.18, release: 8 }
           - { boot: 4.1.2, release: 17 }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
           cache: maven
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -124,14 +136,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -147,22 +159,34 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
             17
             21
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Gradle 7.6.4 for the compatibility test
+        uses: actions/cache@v5
+        with:
+          path: ~/gradle-7.6.4
+          key: gradle-7.6.4-bin
+      - name: Download Gradle 7.6.4 (with retries; GitHub's download sometimes answers 504)
+        run: |
+          if [ ! -d ~/gradle-7.6.4/lib ]; then
+            curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o gradle-7.6.4-bin.zip https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+            python3 -m zipfile -e gradle-7.6.4-bin.zip ~ || python -m zipfile -e gradle-7.6.4-bin.zip ~
+            rm gradle-7.6.4-bin.zip
+          fi
       - name: Build plugins (Node.js zip download, npm.cmd, Gradle 7.6)
-        run: ./gradlew -p build-plugins build "-PtestGradle7JavaHome=$JAVA_HOME_17_X64"
+        run: ./gradlew -p build-plugins build "-PtestGradle7JavaHome=$JAVA_HOME_17_X64" "-PtestGradle7Home=$HOME/gradle-7.6.4"
       - name: Java modules and example tests
         run: ./gradlew build -PmustacheReact.skipFrontend
       - name: Consumer project
@@ -173,9 +197,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -193,14 +217,14 @@ jobs:
       matrix:
         boot: [2.7.18, 4.1.2]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -233,14 +257,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
