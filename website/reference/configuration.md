@@ -1,7 +1,6 @@
 # 설정
 
-::: v-pre
-
+:::: v-pre
 모든 설정은 `application.properties` / `application.yml`의 `mustache-react.*`에 있습니다. 전부 기본값이 있어서 대부분의 프로젝트는 아무것도 설정하지 않아도 됩니다.
 
 ## 전체 예시
@@ -123,7 +122,9 @@ React의 `useServerContext()`로 받는 값입니다.
 
 ## 프로파일 예시
 
-```properties
+::: code-group
+
+```properties [application.properties]
 # application.properties (공통)
 mustache-react.ssr=auto
 mustache-react.context.messages=app.name,orders.*
@@ -138,6 +139,40 @@ spring.mustache.servlet.cache=false
 mustache-react.public-path=https://cdn.example.com/shop/
 ```
 
+```yaml [application.yml]
+# 공통
+mustache-react:
+  ssr: auto
+  context:
+    messages: app.name,orders.*
+spring:
+  messages:
+    fallback-to-system-locale: false
+---
+# 개발 (application-dev.yml로 따로 두어도 됩니다)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  mustache:
+    prefix: file:src/main/resources/templates/
+    servlet:
+      cache: false
+mustache-react:
+  dev-server:
+    enabled: true
+---
+# 운영: 프론트를 CDN에 따로 올릴 때
+spring:
+  config:
+    activate:
+      on-profile: prod
+mustache-react:
+  public-path: https://cdn.example.com/shop/
+```
+
+:::
+
 ## 타입 생성기 옵션
 
 `mustache-react-processor`(annotation processor)는 javac 옵션 하나를 읽습니다.
@@ -148,4 +183,4 @@ mustache-react.public-path=https://cdn.example.com/shop/
 
 `@ReactIsland`가 있으면 클래스 출력에 `META-INF/mustache-react/islands.properties`도 씁니다. 런타임이 이 파일로 템플릿의 island props를 검사합니다.
 
-:::
+::::

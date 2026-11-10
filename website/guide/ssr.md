@@ -8,10 +8,20 @@
 
 ## 켜기
 
-```properties
+::: code-group
+
+```properties [application.properties]
 # application.properties
 mustache-react.ssr=auto
 ```
+
+```yaml [application.yml]
+# application.yml
+mustache-react:
+  ssr: auto
+```
+
+:::
 
 ```kotlin
 // build.gradle.kts: 서버용 번들도 함께 빌드

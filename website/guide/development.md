@@ -4,7 +4,9 @@
 
 ## 설정
 
-```properties
+::: code-group
+
+```properties [application-dev.properties]
 # src/main/resources/application-dev.properties
 mustache-react.dev-server.enabled=true
 
@@ -12,6 +14,22 @@ mustache-react.dev-server.enabled=true
 spring.mustache.prefix=file:src/main/resources/templates/
 spring.mustache.servlet.cache=false
 ```
+
+```yaml [application-dev.yml]
+# src/main/resources/application-dev.yml
+mustache-react:
+  dev-server:
+    enabled: true
+
+# Mustache 템플릿을 jar가 아니라 소스에서 읽어, 고치면 바로 반영
+spring:
+  mustache:
+    prefix: file:src/main/resources/templates/
+    servlet:
+      cache: false
+```
+
+:::
 
 `messages.properties`는 개발 모드에서 따로 설정하지 않아도 재시작 없이 반영됩니다. Spring의 메시지 캐시가 1초로 줄고(`spring.messages.cache-duration`을 직접 두면 그 값을 씁니다), `orders.*` 같은 패턴도 페이지마다 다시 펼칩니다. 단, 고친 파일이 클래스패스에 복사되어야 합니다(IDE의 빌드, 또는 `./gradlew processResources`).
 

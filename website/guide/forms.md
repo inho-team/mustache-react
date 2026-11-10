@@ -1,7 +1,6 @@
 # 폼과 서버 컨텍스트
 
-::: v-pre
-
+:::: v-pre
 ## 서버 컨텍스트
 
 모든 페이지(`@ReactPage`와 island가 있는 Mustache 화면)에 서버 정보가 JSON으로 함께 내려옵니다(`<script id="mr-context">`). React에서는 `useServerContext()`로 읽습니다.
@@ -171,11 +170,23 @@ export default function OrderForm({ form: initial }: PageProps<'orders/OrderForm
 errors.rejectValue("amount", "min", new Object[] {1}, "The amount must be at least 1");
 ```
 
-```properties
+::: code-group
+
+```properties [messages.properties]
 # messages.properties
 min.amount=금액은 {0}원 이상이어야 합니다.
 required.customer=고객 이름을 입력하세요.
 ```
+
+```yaml [messages.yml]
+# messages.yml
+min:
+  amount: 금액은 {0}원 이상이어야 합니다.
+required:
+  customer: 고객 이름을 입력하세요.
+```
+
+:::
 
 Bean Validation도 같습니다: `@NotBlank(message = "{required.customer}")`.
 
@@ -264,4 +275,4 @@ export default function Login({ error }: PageProps<'auth/Login'>) {
 }
 ```
 
-:::
+::::
