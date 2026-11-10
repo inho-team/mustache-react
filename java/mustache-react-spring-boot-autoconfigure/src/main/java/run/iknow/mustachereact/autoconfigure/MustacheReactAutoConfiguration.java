@@ -175,7 +175,10 @@ public class MustacheReactAutoConfiguration {
             return new HttpSsrEngine(() -> {
                 NodeSsrServer node = server.getIfAvailable();
                 return node == null ? null : node.getEndpoint();
-            }, timeout);
+            }, timeout, () -> {
+                NodeSsrServer node = server.getIfAvailable();
+                return node == null ? null : node.getToken();
+            });
         }
     }
 

@@ -52,6 +52,21 @@ describe('render endpoint', () => {
     }
   });
 
+  it('refuses render requests without the token Spring passed at launch', async () => {
+    const server = await startServer(render, 0, '127.0.0.1', 'secret');
+    try {
+      const { port } = server.address() as { port: number };
+      const url = `http://127.0.0.1:${port}/__mustache-react/render`;
+      const body = JSON.stringify({ component: 'pages/Greeting', props: { name: '김' } });
+      expect((await fetch(url, { method: 'POST', body })).status).toBe(403);
+      expect((await fetch(url, { method: 'POST', body, headers: { 'X-Mustache-React-Token': 'wrong!' } })).status).toBe(403);
+      const ok = await fetch(url, { method: 'POST', body, headers: { 'X-Mustache-React-Token': 'secret' } });
+      expect(await ok.json()).toEqual({ html: '<main><p>hello 김, anonymous</p></main>' });
+    } finally {
+      server.close();
+    }
+  });
+
   it('reads the port argument', () => {
     expect(portFromArgs(['--port', '5174'])).toBe(5174);
     expect(() => portFromArgs([])).toThrow('Usage');

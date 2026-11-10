@@ -41,6 +41,8 @@ public class NodeSsrServer implements SmartLifecycle {
     private volatile Path workDir;
     private volatile Path script;
     private volatile boolean started;
+    /** Random per application run; the server refuses render requests without it. */
+    private final String token = newToken();
 
     /**
      * @param resourceLoader loads the bundle
@@ -57,6 +59,26 @@ public class NodeSsrServer implements SmartLifecycle {
         this.node = node != null && !node.isEmpty() ? node : ViteDevServerProcess.findNode(nodeInstallDir);
         this.startupTimeoutMillis = startupTimeoutMillis;
         this.required = required;
+    }
+
+    /** Environment variable that passes the token to {@code server.mjs}. */
+    public static final String TOKEN_ENV = "MUSTACHE_REACT_SSR_TOKEN";
+
+    /**
+     * @return the token to send in {@link HttpSsrEngine#TOKEN_HEADER}: only this application can use the server
+     */
+    public String getToken() {
+        return token;
+    }
+
+    private static String newToken() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        StringBuilder hex = new StringBuilder(64);
+        for (byte b : bytes) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString();
     }
 
     /**
@@ -154,7 +176,10 @@ public class NodeSsrServer implements SmartLifecycle {
             // Clear the old port first: once the new process is alive, getEndpoint() must not hand out the port of
             // the dead one before the new one listens.
             endpoint = null;
-            Process started = new ProcessBuilder(command).directory(workDir.toFile()).inheritIO().start();
+            ProcessBuilder builder = new ProcessBuilder(command).directory(workDir.toFile()).inheritIO();
+            // In the environment rather than on the command line, which other local users can list.
+            builder.environment().put(TOKEN_ENV, token);
+            Process started = builder.start();
             process = started;
             if (!this.started) {
                 // stop() ran while this restart was starting the process: do not leave it behind.

@@ -29,10 +29,14 @@ class NodeSsrServerTest {
     void runsTheBundleAndStopsIt() throws Exception {
         assumeTrue(nodeAvailable(), "needs node on the PATH");
         Path bundle = dir.resolve("server.mjs");
-        // Stands in for the bundle built by the vite plugin: echoes the component name.
+        // Stands in for the bundle built by the vite plugin: echoes the component name, and like the real server
+        // refuses requests without the token from its environment.
         Files.write(bundle, ("import { createServer } from 'node:http';\n"
                 + "const port = Number(process.argv[process.argv.indexOf('--port') + 1]);\n"
-                + "createServer((req, res) => { let b = ''; req.on('data', c => b += c); req.on('end', () => {\n"
+                + "createServer((req, res) => { if (!process.env.MUSTACHE_REACT_SSR_TOKEN\n"
+                + "    || req.headers['x-mustache-react-token'] !== process.env.MUSTACHE_REACT_SSR_TOKEN) {\n"
+                + "  res.writeHead(403); res.end(); return; }\n"
+                + "  let b = ''; req.on('data', c => b += c); req.on('end', () => {\n"
                 + "  res.setHeader('Content-Type', 'application/json');\n"
                 + "  res.end(JSON.stringify({ html: '<p>' + JSON.parse(b).component + '</p>' })); }); })\n"
                 + "  .listen(port, '127.0.0.1');\n").getBytes(StandardCharsets.UTF_8));
@@ -42,7 +46,12 @@ class NodeSsrServerTest {
         try {
             server.start();
             assertThat(server.isRunning()).isTrue();
-            assertThat(new HttpSsrEngine(server::getEndpoint, 2000).render("pages/A", "{}", "{}")).isEqualTo("<p>pages/A</p>");
+            assertThat(new HttpSsrEngine(server::getEndpoint, 2000, server::getToken).render("pages/A", "{}", "{}"))
+                    .isEqualTo("<p>pages/A</p>");
+            assertThat(server.getToken()).hasSize(64);
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> new HttpSsrEngine(server::getEndpoint, 2000).render("pages/A", "{}", "{}"))
+                    .hasMessageContaining("HTTP 403");
         } finally {
             server.stop();
         }
