@@ -108,4 +108,28 @@ class ViteDevServerProcessTest {
         assertThat(ViteDevServerProcess.findNode(new File(dir.toFile(), "missing"))).isEqualTo("node");
         assertThat(ViteDevServerProcess.findNode(null)).isEqualTo("node");
     }
+
+    @Test
+    void tellsAViteDevServerFromAnotherProgramOnThePort() throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+                new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/mustache-react/@vite/client", exchange -> {
+            byte[] body = "export {}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "text/javascript");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            URI url = URI.create("http://127.0.0.1:" + server.getAddress().getPort());
+            assertThat(ViteDevServerProcess.isViteDevServer(url, "/mustache-react/")).isTrue();
+            // Another program answers, but not with the Vite client.
+            assertThat(ViteDevServerProcess.isViteDevServer(url, "/other/")).isFalse();
+        } finally {
+            server.stop(0);
+        }
+        assertThat(ViteDevServerProcess.isViteDevServer(URI.create("http://127.0.0.1:" + freePort()), "/mustache-react/"))
+                .isFalse();
+    }
 }

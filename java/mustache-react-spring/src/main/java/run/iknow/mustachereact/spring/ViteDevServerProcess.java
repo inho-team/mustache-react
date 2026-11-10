@@ -98,12 +98,45 @@ public class ViteDevServerProcess implements SmartLifecycle {
         }
     }
 
+    /**
+     * Whether a Vite dev server answers at the URL: its client script is served under the public path.
+     *
+     * @param url origin of the dev server
+     * @param publicPath path the frontend is served under, e.g. {@code /mustache-react/}
+     * @return {@code true} if {@code <url><publicPath>@vite/client} is a JavaScript file
+     */
+    static boolean isViteDevServer(URI url, String publicPath) {
+        String path = (publicPath.startsWith("/") ? "" : "/") + publicPath + (publicPath.endsWith("/") ? "" : "/");
+        java.net.HttpURLConnection connection = null;
+        try {
+            connection = (java.net.HttpURLConnection) new java.net.URL(
+                    url.toString().replaceAll("/+$", "") + path + "@vite/client").openConnection();
+            connection.setConnectTimeout(2000);
+            connection.setReadTimeout(2000);
+            String type = connection.getContentType();
+            return connection.getResponseCode() == 200 && type != null && type.contains("javascript");
+        } catch (IOException | RuntimeException ex) {
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
     @Override
     public void start() {
         String host = url.getHost() == null ? "localhost" : url.getHost();
         int port = url.getPort() > 0 ? url.getPort() : 5173;
         if (isListening(host, port)) {
-            LOGGER.info("mustache-react: using the Vite dev server already running at " + url);
+            if (isViteDevServer(url, publicPath)) {
+                LOGGER.info("mustache-react: using the Vite dev server already running at " + url);
+            } else {
+                // Pages would load their scripts from a program that does not serve them.
+                LOGGER.error("mustache-react: port " + port + " is used by another program, not by a Vite dev server: "
+                        + "pages will not load their scripts. Stop that program, or set mustache-react.dev-server.url "
+                        + "to a free port (for example http://localhost:5174).");
+            }
             return;
         }
         File cli = new File(frontendDir, CLI);
