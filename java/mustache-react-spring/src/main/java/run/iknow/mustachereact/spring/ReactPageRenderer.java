@@ -46,6 +46,10 @@ public class ReactPageRenderer {
     private final boolean contentNegotiation;
 
     private final AtomicReference<Template> layout = new AtomicReference<>();
+    private Map<String, Object> layoutModel = new HashMap<>();
+    private String helpersName = "mr";
+    private MessageLambda messages;
+    private boolean cacheLayout = true;
 
     /**
      * @param resourceLoader loads the manifest and the layout
@@ -66,6 +70,44 @@ public class ReactPageRenderer {
         this.ssr = ssr;
         this.layoutLocation = layoutLocation;
         this.contentNegotiation = contentNegotiation;
+    }
+
+    /**
+     * @param model extra layout variables, e.g. the island section ({@code react}) so that layouts can contain
+     *     islands
+     * @return this renderer
+     */
+    public ReactPageRenderer layoutModel(Map<String, Object> model) {
+        this.layoutModel = new HashMap<>(model);
+        return this;
+    }
+
+    /**
+     * @param name the name of the helpers in layouts ({@code mr}, as in Mustache views); the built-in layout always
+     *     finds them as {@code mr} too
+     * @return this renderer
+     */
+    public ReactPageRenderer helpersName(String name) {
+        this.helpersName = name;
+        return this;
+    }
+
+    /**
+     * @param messages {@code {{#mr.t}}key{{/mr.t}}} in layouts; {@code null} for none
+     * @return this renderer
+     */
+    public ReactPageRenderer messages(MessageLambda messages) {
+        this.messages = messages;
+        return this;
+    }
+
+    /**
+     * @param cache whether the layout is compiled once; {@code false} reads it again for every page, for development
+     * @return this renderer
+     */
+    public ReactPageRenderer cacheLayout(boolean cache) {
+        this.cacheLayout = cache;
+        return this;
     }
 
     /**
@@ -106,17 +148,22 @@ public class ReactPageRenderer {
         mr.put("head", assets.pageHead(component));
         mr.put("page", IslandMarkup.render(component, "mr-page", propsJson, ssrHtml));
         mr.put("scripts", ServerContextFactory.scriptTagFor(contextJson) + assets.pageScripts(component));
+        mr.put("lang", locale == null ? "en" : locale.toLanguageTag());
+        if (messages != null) {
+            mr.put("t", messages);
+        }
 
-        Map<String, Object> context = new HashMap<>();
+        Map<String, Object> context = new HashMap<>(layoutModel);
         context.put("title", title == null || title.isEmpty() ? page : title);
         context.put("lang", locale == null ? "en" : locale.toLanguageTag());
         context.put("page", page);
         context.put("mr", mr);
+        context.put(helpersName, mr);
         return layout().execute(context);
     }
 
     private Template layout() {
-        Template current = layout.get();
+        Template current = cacheLayout ? layout.get() : null;
         if (current != null) {
             return current;
         }
@@ -126,7 +173,11 @@ public class ReactPageRenderer {
         }
         try (InputStream in = resource.getInputStream();
                 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-            layout.compareAndSet(null, compiler.compile(reader));
+            Template compiled = compiler.compile(reader);
+            if (!cacheLayout) {
+                return compiled;
+            }
+            layout.compareAndSet(null, compiled);
             return layout.get();
         } catch (IOException ex) {
             throw new IllegalStateException("mustache-react: could not read the layout at '" + resource.getDescription() + "'", ex);

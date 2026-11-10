@@ -5,7 +5,7 @@
  * `java/mustache-react-core/src/main/java/run/iknow/mustachereact/core/Protocol.java`.
  */
 export const Protocol = {
-  /** Attribute on the island root element. Its value is the component name, e.g. `orders/OrderList`. */
+  /** Attribute on the island root element. Its value is the component path, e.g. `pages/orders/OrderList` or `islands/StatusBadge`. */
   ISLAND_ATTRIBUTE: 'data-mr-island',
   /** Attribute linking an island root to its props script. */
   ISLAND_ID_ATTRIBUTE: 'data-mr-id',

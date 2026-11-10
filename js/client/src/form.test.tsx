@@ -2,7 +2,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetServerContext } from './context.js';
+import { renderToString } from 'react-dom/server';
+import { resetServerContext, ServerContextProvider } from './context.js';
 import { toFormData, useSpringForm, type SpringForm } from './form.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -118,6 +119,21 @@ describe('useSpringForm', () => {
     expect(new Headers(init.headers).get('Content-Type')).toBeNull();
     expect(new Headers(init.headers).get('X-CSRF-TOKEN')).toBe('abc');
     expect(navigate).toHaveBeenCalledWith('/orders');
+  });
+});
+
+describe('useSpringForm during server-side rendering', () => {
+  it('shows the errors of the provided server context, as the browser will', () => {
+    function Errors() {
+      const form = useSpringForm<OrderForm>({ initialValues: { customer: '', amount: 0 } });
+      return <p>{form.errors.customer?.join()}</p>;
+    }
+    const html = renderToString(
+      <ServerContextProvider value={{ errors: { fields: { customer: ['고객 이름을 입력하세요.'] }, global: [] } }}>
+        <Errors />
+      </ServerContextProvider>,
+    );
+    expect(html).toBe('<p>고객 이름을 입력하세요.</p>');
   });
 });
 

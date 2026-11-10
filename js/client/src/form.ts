@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { serverContext, springFetch, type ValidationErrors } from './context.js';
+import { springFetch, useServerContext, type ValidationErrors } from './context.js';
 
 export interface SpringFormOptions<T> {
   /** Initial values, usually the form object from the page props. */
@@ -60,7 +60,8 @@ export interface SpringForm<T> {
  * start.
  */
 export function useSpringForm<T extends object>(options: SpringFormOptions<T>): SpringForm<T> {
-  const initialErrors = serverContext().errors;
+  // From the provider during server-side rendering, from the page in the browser: both render the same errors.
+  const initialErrors = useServerContext().errors;
   const [values, setValues] = useState<T>(options.initialValues);
   const [errors, setErrors] = useState<ValidationErrors>(initialErrors ?? { fields: {}, global: [] });
   const [submitting, setSubmitting] = useState(false);

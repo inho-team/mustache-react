@@ -50,8 +50,9 @@ public class ViteManifestSource {
         Resource resource = resourceLoader.getResource(location);
         if (!resource.exists()) {
             throw new IllegalStateException("mustache-react: Vite manifest not found at '" + location
-                    + "'. Build the frontend first (for example 'pnpm build' in src/main/frontend), "
-                    + "or set 'mustache-react.manifest-location'.");
+                    + "'. Build the frontend with the build plugin first ('./gradlew build' or 'mvn package', not "
+                    + "skipped with mustacheReact.skipFrontend), turn on mustache-react.dev-server.enabled in "
+                    + "development, or set 'mustache-react.manifest-location'.");
         }
         try {
             if (manifest.compareAndSet(null, ViteManifest.read(resource.getInputStream()))) {

@@ -28,6 +28,8 @@ First release: 0.1.0.
 - Deployment: the frontend is built once with relative URLs; pages load it from the jar (default) or, with
   `mustache-react.public-path=https://cdn.example.com/app/`, from a CDN where the same files were uploaded
   (`crossorigin` tags, no rebuild).
+- `@ReactPage` layouts get the helpers of Mustache views (`{{mr.lang}}`, `{{#mr.t}}`, island tags, the configured
+  helpers name) and are read again on every page in development mode.
 - Development mode: the application starts the Vite dev server; HMR for components, reload for Mustache templates.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 

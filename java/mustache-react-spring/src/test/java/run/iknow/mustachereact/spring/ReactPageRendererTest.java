@@ -106,4 +106,37 @@ class ReactPageRendererTest {
         assertThatThrownBy(() -> renderer(MANIFEST, ReactPageRenderer.DEFAULT_LAYOUT).render("../secret", "", "{}", Locale.ENGLISH))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void layoutsHaveTheHelpersOfMustacheViewsUnderTheConfiguredName() {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        FrontendAssets assets = new ManifestFrontendAssets(new ViteManifestSource(loader, MANIFEST), "/mustache-react/");
+        org.springframework.context.support.StaticMessageSource messages =
+                new org.springframework.context.support.StaticMessageSource();
+        messages.addMessage("orders.title", Locale.KOREAN, "주문 목록");
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(new MapRequestAttributes());
+        org.springframework.context.i18n.LocaleContextHolder.setLocale(Locale.KOREAN);
+        try {
+            ReactPageRenderer renderer = new ReactPageRenderer(loader,
+                    new IslandTagCompiler(Mustache.compiler(), "react", "react", "ui"), assets, context(),
+                    ServerSideRendering.off(), "classpath:/renderer/templates/helpers/layout.mustache", true)
+                    .layoutModel(java.util.Collections.<String, Object>singletonMap("react", new ReactIslandLambda(
+                            new PropsSerializer(java.util.Collections.<org.springframework.http.converter.HttpMessageConverter<?>>singletonList(
+                                    new ReactIslandLambdaTest.MapJsonConverter())))))
+                    .helpersName("ui")
+                    .messages(new MessageLambda(messages))
+                    .cacheLayout(false);
+
+            String html = renderer.render("orders/OrderList", "", "{}", Locale.KOREAN);
+
+            assertThat(html).startsWith("<html lang=\"ko\"><head><link rel=\"stylesheet\"")
+                    .contains("<title>주문 목록</title>")
+                    .contains("data-mr-island=\"pages/orders/OrderList\"")
+                    .contains("data-mr-island=\"islands/Clock\"").contains("{\"zone\":\"Asia/Seoul\"}")
+                    .contains("<script type=\"module\" src=\"/mustache-react/assets/mustache-react-2.js\"></script>");
+        } finally {
+            org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+            org.springframework.context.i18n.LocaleContextHolder.resetLocaleContext();
+        }
+    }
 }
