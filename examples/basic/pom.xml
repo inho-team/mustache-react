@@ -70,9 +70,7 @@
               <version>${mustache-react.version}</version>
             </path>
           </annotationProcessorPaths>
-          <compilerArgs>
-            <arg>-Amustachereact.typesFile=${project.basedir}/src/main/frontend/generated/types.ts</arg>
-          </compilerArgs>
+          <!-- types.ts goes to src/main/frontend/generated/ without a compiler argument -->
         </configuration>
       </plugin>
 

@@ -275,4 +275,26 @@ class TypeScriptProcessorTest {
         assertThat(result.output).doesNotContain("ReactIslands");
         assertThat(workDir.resolve("classes/" + TypeScriptProcessor.ISLANDS_RESOURCE)).doesNotExist();
     }
+
+    @Test
+    void findsTheFrontendOfAMavenProjectWithoutTheCompilerArgument() throws Exception {
+        Path frontend = Files.createDirectories(workDir.resolve("src/main/frontend"));
+        Compilation result = Compilation.compile(workDir, sources("app.OrderController", CONTROLLER,
+                "app.OrderListResponse", RESPONSE, "app.Paged", PAGED, "app.Order", ORDER),
+                "target/classes", frontend.resolve("generated/types.ts"), false);
+
+        assertThat(result.success).as(result.diagnostics).isTrue();
+        assertThat(result.output).contains("export interface ReactPages");
+    }
+
+    @Test
+    void withoutAFrontendDirectoryTheTypesStayInTheClassOutput() throws Exception {
+        Compilation result = Compilation.compile(workDir, sources("app.OrderController", CONTROLLER,
+                "app.OrderListResponse", RESPONSE, "app.Paged", PAGED, "app.Order", ORDER),
+                "target/classes", workDir.resolve("src/main/frontend/generated/types.ts"), false);
+
+        assertThat(result.success).as(result.diagnostics).isTrue();
+        assertThat(result.output).isNull();
+        assertThat(workDir.resolve("target/classes/" + TypeScriptProcessor.DEFAULT_RESOURCE)).exists();
+    }
 }

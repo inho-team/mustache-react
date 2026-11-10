@@ -216,8 +216,12 @@ public class TypeScriptProcessor extends AbstractProcessor {
 
         String target = processingEnv.getOptions().get(OPTION_TYPES_FILE);
         try {
+            Path conventional;
             if (target != null && !target.trim().isEmpty()) {
                 writeIfChanged(Paths.get(target.trim()).toAbsolutePath(), content);
+            } else if ((conventional = conventionalTypesFile()) != null) {
+                // Maven without the compiler argument: the usual project layout is enough.
+                writeIfChanged(conventional, content);
             } else {
                 FileObject file = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", DEFAULT_RESOURCE);
                 try (Writer out = file.openWriter()) {
@@ -227,6 +231,27 @@ public class TypeScriptProcessor extends AbstractProcessor {
         } catch (IOException ex) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
                     "mustache-react: could not write TypeScript types: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * {@code src/main/frontend/generated/types.ts} of the project being compiled, found from the class output
+     * ({@code target/classes} for Maven, {@code build/classes/java/main} for Gradle), when that directory exists.
+     */
+    private Path conventionalTypesFile() {
+        try {
+            FileObject probe = processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", "probe");
+            Path classes = Paths.get(probe.toUri()).getParent();
+            Path project = null;
+            if (classes != null && classes.endsWith(Paths.get("target", "classes"))) {
+                project = classes.getParent().getParent();
+            } else if (classes != null && classes.endsWith(Paths.get("build", "classes", "java", "main"))) {
+                project = classes.getParent().getParent().getParent().getParent();
+            }
+            Path frontend = project == null ? null : project.resolve("src/main/frontend");
+            return frontend != null && Files.isDirectory(frontend) ? frontend.resolve("generated/types.ts") : null;
+        } catch (IOException | RuntimeException ex) {
+            return null;
         }
     }
 

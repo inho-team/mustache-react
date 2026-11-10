@@ -32,9 +32,18 @@ final class Compilation {
     }
 
     static Compilation compile(Path workDir, Map<String, String> sources) throws IOException {
-        Path src = Files.createDirectories(workDir.resolve("src"));
-        Path classes = Files.createDirectories(workDir.resolve("classes"));
-        Path typesFile = workDir.resolve("frontend/generated/types.ts");
+        return compile(workDir, sources, "classes", workDir.resolve("frontend/generated/types.ts"), true);
+    }
+
+    /**
+     * @param classesDir class output relative to {@code workDir}, e.g. {@code target/classes}
+     * @param typesFile where the types are expected
+     * @param typesOption whether to pass {@code -Amustachereact.typesFile}
+     */
+    static Compilation compile(Path workDir, Map<String, String> sources, String classesDir, Path typesFile,
+            boolean typesOption) throws IOException {
+        Path src = Files.createDirectories(workDir.resolve("src/java"));
+        Path classes = Files.createDirectories(workDir.resolve(classesDir));
         List<File> files = new ArrayList<>();
         for (Map.Entry<String, String> source : sources.entrySet()) {
             Path file = src.resolve(source.getKey().replace('.', '/') + ".java");
@@ -50,8 +59,10 @@ final class Compilation {
             List<String> options = new ArrayList<>(Arrays.asList(
                     "-proc:only",
                     "-classpath", System.getProperty("java.class.path"),
-                    "-d", classes.toString(),
-                    "-A" + TypeScriptProcessor.OPTION_TYPES_FILE + "=" + typesFile));
+                    "-d", classes.toString()));
+            if (typesOption) {
+                options.add("-A" + TypeScriptProcessor.OPTION_TYPES_FILE + "=" + typesFile);
+            }
             JavaCompiler.CompilationTask task = compiler.getTask(diagnostics, fileManager, null, options, null, units);
             task.setProcessors(java.util.Collections.singletonList(new TypeScriptProcessor()));
             boolean success = task.call();

@@ -106,7 +106,10 @@ jobs:
       - run: pnpm --filter "@mustache-react-examples/basic^..." run build
       - name: mvn package
         working-directory: examples/basic
-        run: mvn -B package -Dspring-boot.version=${{ matrix.boot }} -Dmaven.compiler.release=${{ matrix.release }}
+        # types.ts is removed first: the processor must write it back without a compiler argument.
+        run: |
+          rm src/main/frontend/generated/types.ts
+          mvn -B package -Dspring-boot.version=${{ matrix.boot }} -Dmaven.compiler.release=${{ matrix.release }}
       - name: Generated TypeScript types are up to date
         run: git diff --exit-code -- examples/basic/src/main/frontend/generated
       - run: pnpm exec playwright install --with-deps chromium

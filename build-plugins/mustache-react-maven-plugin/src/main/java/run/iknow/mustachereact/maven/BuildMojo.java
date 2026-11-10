@@ -39,7 +39,7 @@ public class BuildMojo extends AbstractMojo {
     private File frontendDir;
 
     /** URL path Spring serves the assets from; must match {@code mustache-react.public-path}. */
-    @Parameter(defaultValue = "/mustache-react/")
+    @Parameter(defaultValue = "/mustache-react/", property = "mustacheReact.publicPath")
     private String publicPath;
 
     /** Skips the frontend build, e.g. {@code -DmustacheReact.skipFrontend} when only the Java side is tested. */
@@ -58,7 +58,7 @@ public class BuildMojo extends AbstractMojo {
     private boolean install;
 
     /** {@code auto}, {@code npm}, {@code pnpm} or {@code yarn}. */
-    @Parameter(defaultValue = "auto")
+    @Parameter(defaultValue = "auto", property = "mustacheReact.packageManager")
     private String packageManager;
 
     /** Whether to download Node.js instead of using the one on the {@code PATH}. */
@@ -66,15 +66,15 @@ public class BuildMojo extends AbstractMojo {
     private boolean nodeDownload;
 
     /** Node.js version to download. */
-    @Parameter(defaultValue = NodeInstaller.DEFAULT_VERSION)
+    @Parameter(defaultValue = NodeInstaller.DEFAULT_VERSION, property = "mustacheReact.nodeVersion")
     private String nodeVersion;
 
     /** Where to download Node.js from. */
-    @Parameter(defaultValue = NodeInstaller.DEFAULT_DISTRIBUTION_URL)
+    @Parameter(defaultValue = NodeInstaller.DEFAULT_DISTRIBUTION_URL, property = "mustacheReact.nodeDistributionUrl")
     private String nodeDistributionUrl;
 
     /** Where downloaded Node.js versions are kept. Spring's dev server auto-start looks here too. */
-    @Parameter(defaultValue = "${project.basedir}/.mustache-react/node")
+    @Parameter(defaultValue = "${project.basedir}/.mustache-react/node", property = "mustacheReact.nodeInstallDir")
     private File nodeInstallDir;
 
     /** Resources directory receiving {@code static/<public path>/}. */
