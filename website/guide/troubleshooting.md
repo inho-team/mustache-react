@@ -175,7 +175,7 @@ Node.js 프로세스가 종료되어 다시 띄우는 중입니다(최대 10초�
 
 ### 화면에 스크립트가 안 붙는다, 5173 포트가 이미 쓰인다
 
-5173 포트에서 이미 무언가가 응답하면 mustache-react는 그것을 Vite 개발 서버로 보고 씁니다. 다른 프로젝트의 개발 서버가 떠 있는지 확인합니다. 포트를 바꾸려면:
+5173 포트에 이미 Vite 개발 서버가 떠 있으면 mustache-react는 그것을 씁니다. 다른 프로젝트의 개발 서버일 수 있으니 확인하세요. Vite가 아닌 프로그램이 그 포트를 쓰고 있으면 시작할 때 이런 에러 로그가 남습니다: `port 5173 is used by another program, not by a Vite dev server`. 포트를 바꾸려면:
 
 ```properties
 mustache-react.dev-server.url=http://localhost:5199

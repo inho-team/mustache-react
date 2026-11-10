@@ -102,7 +102,7 @@ mustacheReact {
 
 ### Maven {#maven}
 
-`maven-compiler-plugin`에 processor와 출력 경로를 추가합니다.
+`maven-compiler-plugin`의 `annotationProcessorPaths`에 processor를 추가합니다. `src/main/frontend`가 있으면 `generated/types.ts`가 그 안에 자동으로 생깁니다.
 
 ```xml
 <plugin>
@@ -117,14 +117,11 @@ mustacheReact {
       </path>
       <!-- Lombok을 쓰면 여기에도 lombok을 함께 둡니다 -->
     </annotationProcessorPaths>
-    <compilerArgs>
-      <arg>-Amustachereact.typesFile=${project.basedir}/src/main/frontend/generated/types.ts</arg>
-    </compilerArgs>
   </configuration>
 </plugin>
 ```
 
-`-Amustachereact.typesFile`가 없으면 파일은 `target/classes/META-INF/mustache-react/types.ts`에 쓰이고 프론트에서 import할 수 없습니다.
+프론트 폴더가 다른 곳에 있으면 `<compilerArgs><arg>-Amustachereact.typesFile=경로/types.ts</arg></compilerArgs>`로 위치를 지정합니다. 프론트 폴더도 이 옵션도 없으면 `target/classes/META-INF/mustache-react/types.ts`에만 쓰입니다.
 
 ## 생성된 파일 관리
 

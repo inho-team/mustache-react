@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Plugin } from 'vite';
@@ -117,8 +118,18 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
   const port = options.port ?? (Number(process.env.MUSTACHE_REACT_DEV_PORT) || DEFAULT_DEV_PORT);
   let templatesDir: string | undefined;
   let ssrBuild = false;
+  let publicFiles: string[] = [];
   return {
     name: 'mustache-react',
+    configResolved(config) {
+      publicFiles =
+        config.command === 'build' && !ssrBuild && config.publicDir ? listPublicFiles(config.publicDir) : [];
+    },
+    buildStart() {
+      if (publicFiles.length > 0) {
+        this.warn(publicDirWarning(publicFiles));
+      }
+    },
     generateBundle() {
       if (!ssrBuild) {
         this.emitFile({ type: 'asset', fileName: BUILD_INFO, source: JSON.stringify({ version: PLUGIN_VERSION }) + '\n' });
@@ -238,3 +249,41 @@ export function mustacheReact(options: MustacheReactOptions = {}): Plugin {
 }
 
 export default mustacheReact;
+
+/** Files in Vite's `public/` directory, at most a few, to name them in the warning. */
+function listPublicFiles(dir: string): string[] {
+  const found: string[] = [];
+  const walk = (current: string, prefix: string) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (found.length >= 5) {
+        return;
+      }
+      if (entry.isDirectory()) {
+        walk(path.join(current, entry.name), `${prefix}${entry.name}/`);
+      } else {
+        found.push(prefix + entry.name);
+      }
+    }
+  };
+  walk(dir, '');
+  return found;
+}
+
+/**
+ * Files in `public/` are copied as they are, next to the built files, so they are served under the public path
+ * (`/mustache-react/logo.png`, or the CDN), not at `/logo.png`. Pages that write `/logo.png` break.
+ */
+export function publicDirWarning(files: string[]): string {
+  return (
+    `public/ holds ${files.join(', ')}${files.length >= 5 ? ', ...' : ''}. These files are served under ` +
+    'mustache-react.public-path (e.g. /mustache-react/logo.png), not at the site root, so a URL such as "/logo.png" ' +
+    "will not find them. Import them instead (import logo from './logo.png'), or put files that need fixed URLs in " +
+    'src/main/resources/static/.'
+  );
+}

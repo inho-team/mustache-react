@@ -113,7 +113,7 @@ import logo from './assets/logo.svg';
 
 CSS의 `url(./fonts/Pretendard.woff2)`도 같은 방식으로 처리됩니다.
 
-`public/` 폴더에 두고 `/logo.svg`처럼 절대 경로로 부르는 방식은 피하세요. 빌드 결과는 `/mustache-react/` 아래(또는 CDN)에서 서빙되므로 `/logo.svg`는 찾을 수 없습니다. Mustache 화면 전용 이미지는 Spring의 `src/main/resources/static/`에 두고 평소처럼 씁니다.
+`public/` 폴더에 두고 `/logo.svg`처럼 절대 경로로 부르는 방식은 피하세요(`public/`에 파일이 있으면 빌드할 때 경고가 나옵니다). 빌드 결과는 `/mustache-react/` 아래(또는 CDN)에서 서빙되므로 `/logo.svg`는 찾을 수 없습니다. Mustache 화면 전용 이미지는 Spring의 `src/main/resources/static/`에 두고 평소처럼 씁니다.
 
 TypeScript가 이미지와 CSS 모듈 import의 타입을 알도록 `tsconfig.json`에 `"types": ["vite/client"]`가 있어야 합니다. 플러그인이 만든 `tsconfig.json`에는 이미 들어 있고, 직접 만든 파일이라면 추가하세요.
 

@@ -6,4 +6,4 @@
  */
 export { createRenderer } from './render.js';
 export type { Renderer, RendererOptions, RenderRequest } from './render.js';
-export { handleRender, portFromArgs, readBody, RENDER_PATH, startServer } from './http.js';
+export { handleRender, portFromArgs, readBody, RENDER_PATH, startServer, TOKEN_ENV, TOKEN_HEADER } from './http.js';

@@ -1,6 +1,8 @@
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BUILD_INFO, DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, PLUGIN_VERSION, ssrEntrySource } from './index.js';
+import { publicDirWarning, BUILD_INFO, DEFAULT_BASE, ENTRY_NAME, entrySource, mustacheReact, PLUGIN_VERSION, ssrEntrySource } from './index.js';
 
 type ConfigHook = (config: { root?: string }, env?: { command: 'build' | 'serve'; mode: string }) => {
   base: string;
@@ -110,5 +112,24 @@ describe('mustacheReact', () => {
     expect(source).toContain("'/islands/**/*.{tsx,jsx}'");
     expect(source).toContain("'/app.{tsx,jsx,ts,js}'");
     expect(source).toContain('dev: import.meta.env.DEV');
+  });
+
+  it('warns when public/ has files, which are not served at the site root', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mr-public-'));
+    fs.mkdirSync(path.join(dir, 'img'));
+    fs.writeFileSync(path.join(dir, 'img', 'logo.png'), '');
+    const warnings: string[] = [];
+    const run = (command: 'build' | 'serve', publicDir: string) => {
+      const plugin = mustacheReact();
+      (plugin.config as unknown as ConfigHook)({ root: '/app/src/main/frontend' }, { command, mode: 'production' });
+      (plugin.configResolved as unknown as (c: object) => void)({ command, publicDir });
+      (plugin.buildStart as unknown as (this: { warn: (m: string) => void }) => void).call({ warn: (m) => warnings.push(m) });
+    };
+    run('build', dir);
+    expect(warnings).toEqual([publicDirWarning(['img/logo.png'])]);
+    expect(warnings[0]).toContain('/mustache-react/logo.png');
+    run('serve', dir);
+    run('build', path.join(dir, 'missing'));
+    expect(warnings).toHaveLength(1);
   });
 });

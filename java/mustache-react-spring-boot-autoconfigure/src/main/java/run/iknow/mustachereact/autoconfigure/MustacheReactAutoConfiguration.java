@@ -175,7 +175,10 @@ public class MustacheReactAutoConfiguration {
             return new HttpSsrEngine(() -> {
                 NodeSsrServer node = server.getIfAvailable();
                 return node == null ? null : node.getEndpoint();
-            }, timeout);
+            }, timeout, () -> {
+                NodeSsrServer node = server.getIfAvailable();
+                return node == null ? null : node.getToken();
+            });
         }
     }
 
@@ -202,18 +205,21 @@ public class MustacheReactAutoConfiguration {
     /** The keys of the message bundles, to expand patterns such as {@code orders.*}. */
     @Bean
     @ConditionalOnMissingBean
-    public MessageKeys mustacheReactMessageKeys(Environment environment, ResourceLoader resourceLoader) {
+    public MessageKeys mustacheReactMessageKeys(Environment environment, ResourceLoader resourceLoader,
+            MustacheReactProperties properties) {
         // The same bundles as Spring Boot's MessageSourceAutoConfiguration.
         String basenames = environment.getProperty("spring.messages.basename", "messages");
         String encoding = environment.getProperty("spring.messages.encoding", "UTF-8");
         return new MessageKeys(ResourcePatternUtils.getResourcePatternResolver(resourceLoader),
-                StringUtils.commaDelimitedListToSet(StringUtils.trimAllWhitespace(basenames)), Charset.forName(encoding));
+                StringUtils.commaDelimitedListToSet(StringUtils.trimAllWhitespace(basenames)), Charset.forName(encoding))
+                .cache(!properties.getDevServer().isEnabled());
     }
 
     @Bean
     public ServerContextContributor mustacheReactMessagesContext(MessageSource messageSource,
             MustacheReactProperties properties, MessageKeys messageKeys) {
-        return new MessagesContextContributor(messageSource, properties.getContext().getMessages(), messageKeys::all);
+        return new MessagesContextContributor(messageSource, properties.getContext().getMessages(), messageKeys::all)
+                .cache(!properties.getDevServer().isEnabled());
     }
 
     /** CSRF token and signed-in user, with Spring Security. */
@@ -270,6 +276,15 @@ public class MustacheReactAutoConfiguration {
             ReactIslandLambda react, MustacheReactHelpers helpers) {
         return new MustacheReactModelAdvice(properties.getTemplate().getReactName(), react,
                 properties.getTemplate().getHelpersName(), helpers);
+    }
+
+    /**
+     * In development, messages.properties changes show up on the next request: Spring Boot's message source caches
+     * bundles forever unless {@code spring.messages.cache-duration} is set, so it is set to one second here.
+     */
+    @Bean
+    static BeanPostProcessor mustacheReactDevMessages(Environment environment) {
+        return new DevMessageSourcePostProcessor(environment);
     }
 
     /** {@code <react:Name prop="{{path}}" />} in Mustache views, see {@link IslandTagCompilerPostProcessor}. */

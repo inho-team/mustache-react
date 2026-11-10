@@ -33,6 +33,7 @@ public class MessageKeys {
     private final List<String> basenames;
     private final Charset encoding;
     private volatile Set<String> keys;
+    private volatile boolean cache = true;
 
     /**
      * @param resolver finds the bundles
@@ -47,10 +48,20 @@ public class MessageKeys {
     }
 
     /**
+     * @param cache whether the bundles are read once; {@code false} reads them on every call, so that keys added in
+     *     development show up without a restart
+     * @return this
+     */
+    public MessageKeys cache(boolean cache) {
+        this.cache = cache;
+        return this;
+    }
+
+    /**
      * @return all keys of all bundles and locales, sorted
      */
     public Set<String> all() {
-        Set<String> result = keys;
+        Set<String> result = cache ? keys : null;
         if (result == null) {
             result = Collections.unmodifiableSet(load());
             keys = result;

@@ -30,6 +30,9 @@ First release: 0.1.0.
   (`crossorigin` tags, no rebuild).
 - `@ReactPage` layouts get the helpers of Mustache views (`{{mr.lang}}`, `{{#mr.t}}`, island tags, the configured
   helpers name) and are read again on every page in development mode.
+- Hardening: the SSR server only answers the application that started it (a random token passed in the
+  environment); a dev server port taken by another program is reported; `public/` files trigger a build warning;
+  `messages.properties` changes show up without a restart in development.
 - Development mode: the application starts the Vite dev server; HMR for components, reload for Mustache templates.
 - Supports Java 8+, Spring Boot 2.7, 3.5 and 4.x (Spring MVC).
 
@@ -40,6 +43,8 @@ First release: 0.1.0.
   Jackson's output (records, Lombok, generics, `@JsonProperty`, `@JsonIgnore`, `@Nullable`).
 
 ### Build plugins
+- Maven: `types.ts` is written to `src/main/frontend/generated/` without a compiler argument; `publicPath`,
+  `packageManager` and the Node.js settings can be set with `-DmustacheReact.*`.
 - A project without `src/main/frontend/package.json` gets one on the first build, with `tsconfig.json`,
   `.gitignore` and empty `pages/` and `islands/`; existing files are never changed.
 - Gradle plugin `run.iknow.mustache-react` (Gradle 7.6+, configuration cache) and Maven plugin

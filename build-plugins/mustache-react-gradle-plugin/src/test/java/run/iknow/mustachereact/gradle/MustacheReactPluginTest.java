@@ -185,7 +185,10 @@ class MustacheReactPluginTest {
         assumeTrue(javaHome != null && !javaHome.isEmpty(), "set -PtestGradle7JavaHome to a JDK 8-17");
         write("gradle.properties", "org.gradle.java.home=" + javaHome.replace("\\", "\\\\") + "\n");
 
-        BuildResult result = runner("jar").withGradleVersion("7.6.4").build();
+        String gradleHome = System.getProperty("mustacheReact.gradle7Home");
+        BuildResult result = (gradleHome != null && !gradleHome.isEmpty()
+                ? runner("jar").withGradleInstallation(new java.io.File(gradleHome))
+                : runner("jar").withGradleVersion("7.6.4")).build();
 
         assertThat(result.task(":mustacheReactBuild").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
         assertThat(project.resolve("build/resources/main/static/mustache-react/.vite/manifest.json")).exists();

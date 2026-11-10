@@ -48,4 +48,6 @@ tasks.test {
     // Gradle 7.6 does not run on Java 21: give the compatibility test an older JDK when one is available,
     // e.g. -PtestGradle7JavaHome=/usr/lib/jvm/java-17 (CI sets it).
     providers.gradleProperty("testGradle7JavaHome").orNull?.let { systemProperty("mustacheReact.gradle7JavaHome", it) }
+    // An unpacked Gradle 7.6.4 (CI downloads it with retries and caches it); without it TestKit downloads one.
+    providers.gradleProperty("testGradle7Home").orNull?.let { systemProperty("mustacheReact.gradle7Home", it) }
 }

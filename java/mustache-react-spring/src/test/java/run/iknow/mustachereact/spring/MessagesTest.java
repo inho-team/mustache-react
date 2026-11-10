@@ -114,4 +114,21 @@ class MessagesTest {
         new LocaleContextContributor().contribute(plain);
         assertThat(plain).containsOnlyKeys("locale");
     }
+
+    @Test
+    void readsTheBundlesAgainWhenNotCached(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path bundle = dir.resolve("dev.properties");
+        java.nio.file.Files.write(bundle, "a=1\n".getBytes(StandardCharsets.UTF_8));
+        try (java.net.URLClassLoader loader = new java.net.URLClassLoader(new java.net.URL[] {dir.toUri().toURL()}, null)) {
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(loader);
+            MessageKeys cached = new MessageKeys(resolver, Collections.singletonList("dev"), StandardCharsets.UTF_8);
+            MessageKeys fresh = new MessageKeys(resolver, Collections.singletonList("dev"), StandardCharsets.UTF_8).cache(false);
+            assertThat(cached.all()).containsExactly("a");
+            assertThat(fresh.all()).containsExactly("a");
+
+            java.nio.file.Files.write(bundle, "a=1\nb=2\n".getBytes(StandardCharsets.UTF_8));
+            assertThat(cached.all()).containsExactly("a");
+            assertThat(fresh.all()).containsExactly("a", "b");
+        }
+    }
 }

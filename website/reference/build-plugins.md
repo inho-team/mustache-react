@@ -101,15 +101,15 @@ Gradle 7.6 이상, 설정 캐시를 지원합니다.
 | 파라미터 | 사용자 속성 | 기본값 | 설명 |
 |---|---|---|---|
 | `frontendDir` | `mustacheReact.frontendDir` | `${project.basedir}/src/main/frontend` | 프론트 디렉터리 |
-| `publicPath` | - | `/mustache-react/` | jar 안의 에셋 경로 |
+| `publicPath` | `mustacheReact.publicPath` | `/mustache-react/` | jar 안의 에셋 경로 |
 | `skipFrontend` | `mustacheReact.skipFrontend` | `false` | 프론트 빌드를 건너뜀 |
 | `ssr` | `mustacheReact.ssr` | `false` | SSR 번들도 만듦 |
 | `install` | `mustacheReact.install` | `true` | 의존성 설치 |
-| `packageManager` | - | `auto` | `auto`, `npm`, `pnpm`, `yarn` |
+| `packageManager` | `mustacheReact.packageManager` | `auto` | `auto`, `npm`, `pnpm`, `yarn` |
 | `nodeDownload` | `mustacheReact.nodeDownload` | `true` | Node.js를 내려받을지 |
-| `nodeVersion` | - | `24.22.2` | Node.js 버전 |
-| `nodeDistributionUrl` | - | `https://nodejs.org/dist` | 다운로드 주소 |
-| `nodeInstallDir` | - | `${project.basedir}/.mustache-react/node` | Node.js 위치 |
+| `nodeVersion` | `mustacheReact.nodeVersion` | `24.22.2` | Node.js 버전 |
+| `nodeDistributionUrl` | `mustacheReact.nodeDistributionUrl` | `https://nodejs.org/dist` | 다운로드 주소 |
+| `nodeInstallDir` | `mustacheReact.nodeInstallDir` | `${project.basedir}/.mustache-react/node` | Node.js 위치 |
 | `outputDirectory` | - | `${project.build.directory}/mustache-react` | 빌드 결과(`static/<publicPath>/`, SSR 번들) |
 
 Maven에는 Gradle처럼 상태를 보고 건너뛰는 기능이 없어서, `package.json`과 lock 파일의 해시를 `node_modules/.mustache-react-install`에 적어 두고 바뀌었을 때만 다시 설치합니다.

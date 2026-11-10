@@ -1,8 +1,24 @@
+import { timingSafeEqual } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { Renderer, RenderRequest } from './render.js';
 
 /** Path of the render endpoint, on the SSR server and on the Vite dev server. */
 export const RENDER_PATH = '/__mustache-react/render';
+
+/** Header carrying the token Spring gave the SSR server at launch. */
+export const TOKEN_HEADER = 'x-mustache-react-token';
+
+/** Environment variable through which Spring passes the token (not the command line, which other users can read). */
+export const TOKEN_ENV = 'MUSTACHE_REACT_SSR_TOKEN';
+
+function tokenMatches(expected: string, actual: string | string[] | undefined): boolean {
+  if (typeof actual !== 'string') {
+    return false;
+  }
+  const a = Buffer.from(expected);
+  const b = Buffer.from(actual);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 const MAX_BODY = 16 * 1024 * 1024;
 
@@ -50,9 +66,15 @@ export function readBody(request: NodeJS.ReadableStream & { destroy?: () => void
 
 /**
  * Starts the SSR HTTP server Spring talks to. Listens on 127.0.0.1 only: it is a sidecar of the application,
- * not a public service.
+ * not a public service. With a token, render requests without it are refused (403), so other local processes
+ * cannot use the server or read what the application renders.
  */
-export function startServer(render: Renderer, port: number, host = '127.0.0.1'): Promise<Server> {
+export function startServer(
+  render: Renderer,
+  port: number,
+  host = '127.0.0.1',
+  token: string | undefined = process.env[TOKEN_ENV],
+): Promise<Server> {
   const server = createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/__mustache-react/health') {
       res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
@@ -60,6 +82,10 @@ export function startServer(render: Renderer, port: number, host = '127.0.0.1'):
     }
     if (req.method !== 'POST' || req.url !== RENDER_PATH) {
       res.writeHead(404).end();
+      return;
+    }
+    if (token && !tokenMatches(token, req.headers[TOKEN_HEADER])) {
+      res.writeHead(403).end();
       return;
     }
     readBody(req)

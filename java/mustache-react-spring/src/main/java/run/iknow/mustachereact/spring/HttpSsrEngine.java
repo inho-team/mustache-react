@@ -23,16 +23,30 @@ public class HttpSsrEngine implements SsrEngine {
     /** Path of the endpoint, on the SSR server and on the Vite dev server. */
     public static final String RENDER_PATH = "/__mustache-react/render";
 
+    /** Header carrying the token of the SSR server ({@link NodeSsrServer#getToken()}). */
+    public static final String TOKEN_HEADER = "X-Mustache-React-Token";
+
     private final Supplier<String> endpoint;
     private final int timeoutMillis;
+    private final Supplier<String> token;
 
     /**
      * @param endpoint the render URL, or {@code null} while the server is not running
      * @param timeoutMillis how long a render may take
      */
     public HttpSsrEngine(Supplier<String> endpoint, int timeoutMillis) {
+        this(endpoint, timeoutMillis, () -> null);
+    }
+
+    /**
+     * @param endpoint the render URL, or {@code null} while the server is not running
+     * @param timeoutMillis how long a render may take
+     * @param token the token the server expects, or {@code null} for none
+     */
+    public HttpSsrEngine(Supplier<String> endpoint, int timeoutMillis, Supplier<String> token) {
         this.endpoint = endpoint;
         this.timeoutMillis = timeoutMillis;
+        this.token = token;
     }
 
     @Override
@@ -51,6 +65,10 @@ public class HttpSsrEngine implements SsrEngine {
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            String secret = token.get();
+            if (secret != null) {
+                connection.setRequestProperty(TOKEN_HEADER, secret);
+            }
             try (OutputStream out = connection.getOutputStream()) {
                 out.write(body);
             }

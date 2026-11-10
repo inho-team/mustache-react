@@ -144,4 +144,19 @@ class MustacheReactAutoConfigurationTest {
                 .run(context -> assertThat(context.getBean(com.samskivert.mustache.Mustache.Compiler.class))
                         .isNotInstanceOf(run.iknow.mustachereact.spring.IslandTagCompiler.class));
     }
+
+    @Test
+    void reloadsMessagesEverySecondInDevelopment() {
+        org.springframework.boot.test.context.runner.WebApplicationContextRunner messages = runner
+                .withBean("messageSource", org.springframework.context.support.ResourceBundleMessageSource.class);
+        messages.run(context -> assertThat(org.springframework.test.util.ReflectionTestUtils.getField(
+                context.getBean("messageSource"), "cacheMillis")).isEqualTo(-1L));
+        messages.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.auto-start=false")
+                .run(context -> assertThat(org.springframework.test.util.ReflectionTestUtils.getField(
+                        context.getBean("messageSource"), "cacheMillis")).isEqualTo(1000L));
+        messages.withPropertyValues("mustache-react.dev-server.enabled=true", "mustache-react.dev-server.auto-start=false",
+                "spring.messages.cache-duration=10s")
+                .run(context -> assertThat(org.springframework.test.util.ReflectionTestUtils.getField(
+                        context.getBean("messageSource"), "cacheMillis")).isEqualTo(-1L));
+    }
 }
