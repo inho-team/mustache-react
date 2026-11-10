@@ -84,12 +84,16 @@ public class MessageKeys {
             name = name.replace('.', '/').replaceAll("^/+", "");
             // messages.properties, messages_en.properties, messages_en_US.properties; not messages-old.properties
             String file = name.substring(name.lastIndexOf('/') + 1);
-            Pattern bundleFile = Pattern.compile(Pattern.quote(file) + "(_[A-Za-z0-9_#-]+)?\\.properties");
+            // and the same with .yml / .yaml (YamlMessageSource).
             try {
-                for (Resource resource : resolver.getResources("classpath*:" + name + "*.properties")) {
-                    String filename = resource.getFilename();
-                    if (filename != null && bundleFile.matcher(filename).matches()) {
-                        result.addAll(keysOf(resource));
+                for (String extension : new String[] {"properties", "yml", "yaml"}) {
+                    Pattern bundleFile = Pattern.compile(Pattern.quote(file) + "(_[A-Za-z0-9_#-]+)?\\." + extension);
+                    for (Resource resource : resolver.getResources("classpath*:" + name + "*." + extension)) {
+                        String filename = resource.getFilename();
+                        if (filename != null && bundleFile.matcher(filename).matches()) {
+                            result.addAll(extension.equals("properties") ? keysOf(resource)
+                                    : YamlMessageSource.read(resource).stringPropertyNames());
+                        }
                     }
                 }
             } catch (IOException e) {
